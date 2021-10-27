@@ -276,88 +276,154 @@ asdoc vioplot gdpusdbil debtpos spending if ///
 	(year==1990 | year==2010) & (incomelab=="UM" | incomelab=="H"), over(year) over(incomelab) append
 
 ** Model ----------------------------------------------------------------------- 2
-** Create models, run diagnostics, compare accuracy
-** ------------------------------------------------
-
-** Write models
+*****************
+***MODEL SETUP***
 use "$/LIC_base_merged.dta", clear
-local controls i.HIPCi gini urban open demoscore gdppcusd
-local controlscale i.HIPCi gini urban open demoperc gdppcusdperc // demoperc (*10) gdppcusdperc (100s)
-** -------------------------------------------------------
-** simple DID model --------------------------------------
-**reference: https://www.statalist.org/forums/forum/general-stata-discussion/general/1384611-difference-in-difference-with-panel-data
-asdoc xtreg imhe_hc_mean3b i.HIPC##i.HIPCi `controls', re save(models.doc) title(Longitudinal regression)
-asdoc xtreg imhe_hc_mean3b i.HIPC##i.HIPCi `controlscale', re append title(Longitudinal regression, scaled)
-//treatment effects = i.treatment##i.post betas
-**note: treatment = treatment group dummy; post = treatment before/after dummy
+global covars gdppcusdscaled gini demoperc open urban year
+*global covarscale gini urban open demoperc gdppcusdperc // gdppcusdperc(100s)
+****************
+***REGRESSION***
+** mixed effects - multivar, EQ 5 --------------------------------------
+asdoc mixed imhe_hc_mean3b i.HIPCibin $covars || countryname: , append title(ME RIFS bin) save(models10.doc)
+estimates store febivbin
+asdoc estat ic, append save(models10.doc)
+asdoc estat icc, append save(models10.doc)
+asdoc mixed imhe_hc_mean3b i.HIPCibin $covars || countryname: $covars , append title(ME RIRS bin) save(models10.doc)
+estimates store rebin
+asdoc estat ic, append save(models10.doc)
+asdoc estat icc, append save(models10.doc)
+asdoc mixed imhe_hc_mean3b i.HIPCi $covars || countryname: , append title(ME RIFS cat) save(models10.doc)
+estimates store febiv
+asdoc estat ic, append save(models10.doc)
+asdoc estat icc, append save(models10.doc)
+asdoc mixed imhe_hc_mean3b i.HIPCi $covars || countryname: $covars , append title(ME RIRS cat) save(models10.doc)
+estimates store refull
+asdoc estat ic, append save(models10.doc)
+asdoc estat icc, append save(models10.doc)
+** mixed effects - EQ 1-5 (binary and cat treatment, NO COVARS)
+foreach outcome in debtpos gdppcusdscaled spending imhe_hc_mean3b {
+asdoc mixed `outcome' i.HIPCibin || countryname: , append save(models10.doc) title(ME `outcome' bin)
+asdoc mixed `outcome' i.HIPCi || countryname: , append save(models10.doc) title(ME `outcome')
+asdoc mixed `outcome' i.HIPCi || countryname: , append save(models10.doc) title(ME `outcome')
+}
 
-** approach from O Torres-Reyna 2015, Princeton tutorial
-** reference(https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwja46zMjPrxAhVXsp4KHUmDCI8QFjAAegQIBBAD&url=https%3A%2F%2Fwww.princeton.edu%2F~otorres%2FDID101.pdf&usg=AOvVaw1U0URwurtJ2mGTKWKMNHfF)
-	**treatment dummy for before/after treatment - HIPCi
-	**treatment dummy for treatment/control group - HIPC
-asdoc reg imhe_hc_mean3b i.HIPC##i.HIPCi, r append title(Treatment FX estimation, bivariate)
-asdoc reg imhe_hc_mean3b i.HIPC##i.HIPCi `controls', r append title(Treatment FX estimation)
-asdoc reg imhe_hc_mean3b i.HIPC##i.HIPCi `controlscale', r append title(Treatment FX estimation, scaled)
+asdoc mixed debtpos i.HIPCibin || countryname: , append title(ME EQ1)
+asdoc mixed debtpos i.HIPCibin $covars || countryname: , append title(ME EQ1 covs)
+asdoc mixed debtpos i.HIPCibin $covars || countryname: $covars, append title(RE EQ1 covs)
+// to add gdpusdscaled or gdpgrowth?
+asdoc mixed gdppcusdscaled i.HIPCibin || countryname: , append title(ME EQ2)
+asdoc mixed gdppcusdscaled i.HIPCibin $covars || countryname: , append title(ME EQ2 covs)
+asdoc mixed gdppcusdscaled i.HIPCibin $covars || countryname: $covars, append title(RE EQ2 covs)
 
-//treatment effects = i.HIPCi##i.HIPC betas
+asdoc mixed spending i.HIPCibin || countryname: , append title(ME EQ1)
+asdoc mixed spending i.HIPCibin $covars || countryname: , append title(ME EQ1 covs)
+asdoc mixed spending i.HIPCibin $covars || countryname: $covars, append title(RE EQ1 covs)
 
-*ssc install diff
-*diff imhe_hc_mean3b t(treatment group) p(treatment time)
-asdoc diff imhe_hc_mean3b, treated(HIPC) period(treat1) append title(DID model test 1)
-asdoc diff imhe_hc_mean3b, treated(HIPC) period(treat2) append title(DID model test 2)
-asdoc diff imhe_hc_mean3b, treated(HIPC) period(treat3) append title(DID model test 3)
+asdoc mixed imhe_hc_mean3b i.HIPCibin || countryname: , append title(ME EQ1)
+asdoc mixed imhe_hc_mean3b i.HIPCibin $covars || countryname: , append title(ME EQ1 covs)
+asdoc mixed imhe_hc_mean3b i.HIPCibin $covars || countryname: $covars, append title(RE EQ1 covs)
 
-** proper DID modelling only available with STATA 17:
-*xtdidregress (imhe_hc_mean3b `controls') (HIPCi), group(countryname) time(year) //should group be incomelab?
-**add wild cluster bootstrap pvals:
-*xtdidregress (imhe_hc_mean3b `controls') (HIPCi), group(countryname) time(year) ///
-*	wildbootstrap
-** DID - aggregation methods
-** standard method
-*xtdidregress (imhe_hc_mean3b `controls') (HIPCi), group(countryname) time(year) ///
-*	aggregate(standard)
-** Donald and Lang (2007) method (aggregates, computes ATET and SE):
-*xtdidregress (imhe_hc_mean3b `controls') (HIPCi), group(countryname) time(year) ///
-*	aggregate(dlang)
-**-------------------------------------------------------
-** simple regression model ------------------------------
-**reference: section 14 of statsthinking21
-**option: section 13.2 of statsthinking21 has examples of diagnostic tests
-asdoc reg imhe_hc_mean3b year `controls', append title(Linear regression)
-	asdoc rvfplot, append
-	graph export "$figures\linear1_rvf.png", as(png) replace
-	asdoc avplots, append
-	graph export "$figures\linear1_avplots.png", as(png) replace
-	asdoc estat hettest, append
-	asdoc estat ovtest, append
-asdoc reg imhe_hc_mean3b year `controlscale', append title(Linear regression, scaled)
-	asdoc rvfplot, append
-	graph export "$figures\linear1scaled_rvf.png", as(png) replace
-	asdoc avplots, append
-	graph export "$figures\linear1scaled_avplots.png", as(png) replace
-	asdoc estat hettest, append
-	asdoc estat ovtest, append
-asdoc reg imhe_hc_mean3b year `controls' spending debtpos, append
-	asdoc rvfplot, append
-	graph export "$figures\linearb_rvf.png", as(png) replace
-	asdoc avplots, append
-	graph export "$figures\linearb_avplots.png", as(png) replace
-	asdoc estat hettest, append
-	asdoc estat ovtest, append
-reg imhe_hc_mean1m year `controls'
-	reg imhe_hc_mean1m year `controls' spending debtpos
-reg imhe_hc_mean2f year `controls'
-	reg imhe_hc_mean2f year `controls' spending debtpos
-**-------------------------------------------------------
-** treatment estimation model ---------------------------
+*asdoc mixed imhe_hc_mean3b i.HIPCi $covars || countryname: $covars || incomelab: $covars , append title(ME RIRS 2)
+*asdoc reg debtreductionmultilateral i.HIPCibin year, append title (Reg EQ1 biv bin) save(models10.doc)
+asdoc mixed imhe_hc_mean3b i.HIPCibin || countryname: , append title(ME EQ1)
+asdoc mixed imhe_hc_mean3b i.HIPCibin $covars || countryname: , append title(ME EQ1 covs)
+asdoc mixed imhe_hc_mean3b i.HIPCibin $covars || countryname: $covars, append title(RE EQ1 covs)
+
+estimates store mere5
+
+** EQ 1-5 --------------------------------------------------------------
+**references: models in ch 14; diagnostic examples in ch 13.2 of statsthinking21
+** bivariate
+asdoc reg debtpos year, append title(Reg EQ1 biv) save(models10.doc) //debt or debt reduction?
+*asdoc reg debtreductionmultilateral i.HIPCi  year, append title (Reg EQ1 biv) save(models10.doc)
+asdoc reg gdpusdscaled year, append title(Reg EQ2 biv) save(models10.doc) // gdp or gdp growth?
+asdoc reg gdppcusdscaled year, append title(Reg EQ2pc biv) save(models10.doc)
+asdoc reg gdppcusd year, append title(Reg EQ2pc biv) save(models10.doc)
+asdoc reg spending year, append title(Reg EQ3 biv) save(models10.doc)
+asdoc reg imhe_hc_mean3b year, append title(Reg EQ4 biv) save(models10.doc)
+asdoc reg imhe_hc_mean3b debtpos gdppcusdscaled year, append title(Reg EQ5) save(models10.doc)
+estimates store timehci
+** bivariate w/treatment, HIPCi=binary
+asdoc reg debtpos i.HIPCibin year, replace title(Reg EQ1 biv bin) save(models10.doc) //debt + debt reduction?
+*asdoc reg debtreductionmultilateral i.HIPCibin year, append title (Reg EQ1 biv bin) save(models10.doc)
+asdoc reg gdpusdscaled i.HIPCibin year, append title(Reg EQ2 biv bin) save(models10.doc) // gdp + gdppc + gdp growth?
+asdoc reg gdppcusdscaled i.HIPCibin year, append title(Reg EQ2pc biv bin) save(models10.doc)
+asdoc reg spending i.HIPCibin year, append title(Reg EQ3 biv bin) save(models10.doc)
+asdoc reg imhe_hc_mean3b i.HIPCibin year, append title(Reg EQ4 biv bin) save(models10.doc)
+asdoc reg imhe_hc_mean3b i.HIPCibin gdppcusdscaled year, append title(Reg EQ5 biv bin) save(models10.doc)
+asdoc reg imhe_hc_mean3b i.HIPCibin debtpos gdppcusdscaled year, append title(Reg EQ5 biv bin) save(models10.doc)
+estimates store regbivbin5
+asdoc reg imhe_hc_mean3b i.HIPCibin debtpos $covars, append title(Reg EQ5 bin covars) save(models10.doc)
+estimates store reghcibintreat
+***** choice of growth/spending based on 1) diagnostic strength and 2) independence from debt
+** bivariate w/ treatment
+asdoc reg debtpos i.HIPCi year, append title(Reg EQ1 biv treat) save(models10.doc) //debt or debt reduction?
+*asdoc reg debtreductionmultilateral i.HIPCi  year, append title (Reg EQ1 biv) save(models10.doc)
+asdoc reg gdpusdscaled i.HIPCi year, append title(Reg EQ2 biv treat) save(models10.doc) // gdp or gdp growth?
+asdoc reg gdppcusdscaled i.HIPCi year, append title(Reg EQ2pc biv treat) save(models10.doc)
+asdoc reg spending i.HIPCi year, append title(Reg EQ3 biv treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b i.HIPCi year, append title(Reg EQ4 biv treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b i.HIPCi debtpos gdppcusdscaled year, ///
+	append title(Reg EQ5 treat) save(models10.doc)
+estimates store reghcibiv
+** asdoc reg debtpos i.HIPCi year, append title(Reg EQ1 biv) save(models10.doc) //debt or debt reduction?
+*asdoc reg debtreductionmultilateral i.HIPCi  year, append title (Reg EQ1 biv) save(models10.doc)
+** multivariate
+asdoc reg debtpos i.HIPCi $covars, append title(Reg EQ1) save(models10.doc) //debt or debt reduction?
+*asdoc reg debtreductionmultilateral $covars i.HIPCi year, append title (Reg EQ1) save(models10.doc)
+asdoc reg gdpusdscaled i.HIPCi gini urban open demoperc, append title(Reg EQ2) save(models10.doc) // gdp or gdp growth?
+asdoc reg gdppcusdscaled i.HIPCi gini urban open demoperc, append title(Reg EQ2pc) save(models10.doc) // consider scaled (gdppcusdscaled)
+asdoc reg spending i.HIPCi $covars, append title(Reg EQ3) save(models10.doc)
+asdoc reg imhe_hc_mean3b i.HIPCi $covars, append title(Reg EQ4) save(models10.doc)
+estimates store reg5
+asdoc reg imhe_hc_mean3b i.HIPCi debtpos $covars, append title(Reg EQ5) save(models10.doc)
+estimates store reg5debt
+** main covars, without treatment -- 01/10
+asdoc reg imhe_hc_mean3b debtpos year, append title(Reg EQ1 no treat) save(models10.doc) // gdp or gdp growth?
+asdoc reg imhe_hc_mean3b gdpusdscaled year, append title(Reg EQ2 no treat) save(models10.doc) // gdp or gdp growth?
+asdoc reg imhe_hc_mean3b gdppcusdscaled year, append title(Reg EQ2pc no treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b spending year, append title(Reg EQ3 no treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b i.HIPCi year, append title(Reg EQ4 no treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b debtpos gdppcusdscaled year, append title(Reg EQ5 no treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b $covars year, append title(Reg covars no treat) save(models10.doc)
+** bivars w treatment -- 01/10
+asdoc reg debtpos year, append title(Reg EQ1 no treat) save(models10.doc) // gdp or gdp growth?
+asdoc reg gdpusdscaled year, append title(Reg EQ2 no treat) save(models10.doc) // gdp or gdp growth?
+asdoc reg imhe_hc_mean3b gdppcusdscaled year, append title(Reg EQ2pc no treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b spending year, append title(Reg EQ3 no treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b i.HIPCi year, append title(Reg EQ4 no treat) save(models10.doc)
+asdoc reg imhe_hc_mean3b debtpos gdppcusdscaled year, append title(Reg EQ5 no treat) save(models10.doc)
+** ME EQ 1-4 without treatment -- 01/10
+asdoc mixed imhe_hc_mean3b debtpos year || countryname: , append title(Reg EQ1 no treat) save(models10.doc) // gdp or gdp growth?
+asdoc mixed imhe_hc_mean3b gdppcusdscaled year || countryname: , append title(Reg EQ2pc no treat) save(models10.doc)
+asdoc mixed imhe_hc_mean3b spending year || countryname: , append title(Reg EQ3 no treat) save(models10.doc)
+asdoc mixed imhe_hc_mean3b i.HIPCi year || countryname: , append title(Reg EQ4 no treat) save(models10.doc)
+asdoc mixed imhe_hc_mean3b debtpos gdppcusdscaled year || countryname: , append title(Reg EQ5 no treat) save(models10.doc)
+
+***************
+***TREATMENT***
 ** treatment effects estimators:
 	** regression adjustment (RA) - estimates ATET instead of ATE
 		**(avg treatment effect on the treated; i.e., using only obs from treatmtne group)
 	** inverse probability weighting (IPW)
 	** inverse probability weighting with regression adjustment (IPWRA)
 	** augmented inverse probability weighting (AIPW)
-asdoc teffects ra (imhe_hc_mean3b `controls') (HIPCi), pomeans append title(Treatment FX estimation)
-asdoc teffects ra (imhe_hc_mean3b `controlscale') (HIPCi), pomeans append title(Treatment FX est, scaled)
+
+** regression adjustment
+asdoc teffects ra (imhe_hc_mean3b) (HIPCibin), append title(taffects regression adjustment)
+asdoc teffects ra (imhe_hc_mean3b debtpos gdppcusdscaled) (HIPCibin), append title(taffects regression adjustment)
+asdoc teffects ra (imhe_hc_mean3b $covars) (HIPCibin), append title(taffects regression adjustment +covars)
+asdoc teffects ra (imhe_hc_mean3b debtpos $covars) (HIPCibin), append title(taffects regression adjustment +covars)
+** a? inverse probability weighted
+teffects aipw (imhe_hc_mean3b) (HIPCibin)
+taffects aipw (imhe_hc_mean3b debtpos gdppcusdscaled) (HIPCibin)
+teffects aipw (imhe_hc_mean3b $covars) (HIPCibin)
+teffects aipw (imhe_hc_mean3b debtpos $covars) (HIPCibin)
+** inverse probability weighted + regression adjustment
+teffects ipwra (imhe_hc_mean3b) (HIPCibin)
+taffects ipwra (imhe_hc_mean3b debtpos gdppcusdscaled) (HIPCibin)
+teffects ipwra (imhe_hc_mean3b $covars) (HIPCibin)
+teffects ipwra (imhe_hc_mean3b debtpos $covars) (HIPCibin)
 
 **-------------------------------------------------------
 ** standard mixed effects model -------------------------
