@@ -1,132 +1,25 @@
-** Thesis analysis
-
-**************
-**PSEUDOCODE** 
-** call model results: return list // putexcel A1=matrix(r(C), names) using [model]
-
-*foreach v of var*{
-*        local l`v' : variable label `v'
-* }
-
-*foreach v of varlist v* {
-*   local x : variable label `v'
-*   rename `v' y`x'
-*}
-
-*encode indicatorname, gen(indicator)
-*drop if indicator==.
-*drop indicatorname
-*replace indicatorname="Missing" if indicator==.
-*replace indicatorcode="Missing" if indicator==.
-
-// long-hand way to check for duplicates in countrycode:
-*encode countryname, gen(num)
-*forvalues c = 1/250 {
-*	tab countrycode if num==`c'
-*} // note duplicates here:
-*drop num
-*encode countrycode, gen(num)
-*forvalues c = 1/250 {
-*	tab countryname if num==`c'
-*} // note duplicates here:
-*drop num
-// then fix duplicates manually:
-*replace countrycode = "BLR" if countryname=="Belarus"
-*replace countrycode = "CZE" if countryname=="Czech Republic"
-
-* to merge the two education files:
-*merge 1:1 countryname year using ///
-*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longspendingedu.dta", gen(mergespend2)
-
-* resource/ reference compare coverage to owid:
-* https://ourworldindata.org/grapher/share-of-education-in-government-expenditure
-
-************
-***NOTES****
-
-**Path note** set working directory ("/Users/hanna/OneDrive/Documents/projects")
-** All files in code should be specified with SUBJECTIVE FILE LOCATIONS!!!
-
-** save var & val labels as local macros
-** https://www.stata.com/support/faqs/data-management/apply-labels-after-reshape/
-
-*IDs - countryname countrycode, year
-*files wide by year (y1234), long by indicator (indicatorname indicatorcode)
-*unless marked "long"
-
-***L2 CONTROLS - EDU OUTCOME***
-** urban, gnp, gini, trade open, democracy, corruption/inst quality, transparency
-
-***OMITTED CONTROLS - EDU SPENDING***
-** growth, debt, inflation, unemployment, tax revenue, deficit, central gov grants
-** government spending (total, edu), effectiveness of spending
-
-** COUNTRY NAMES
-* Afghanistan Albania Algeria Angola Argentina Armenia Azerbaijan
-* Bangladesh Belarus Belize Benin Bhutan Bolivia
-* Bosnia and Herzegovina
-* Botswana Brazil Bulgaria Burkina Faso Burundi Cambodia Cameroon
-* Chad Chile Colombia Comoros Republic Costa Rica Croatia Cuba 
-* Djibouti Dominica Dominican Republic
-* Ecuador Egypt El Salvador Equatorial Guinea Eritrea Estonia
-* Eswatini Ethiopia Fiji
-* Georgia Ghana Grenada Guatemala Guinea Guinea-Bissau Guyana
-* Haiti Honduras India Indonesia Iraq 
-* Jamaica Jordan Kazakhstan Kenya Kiribati Kosovo Kyrgyz Republic
-* Latvia Lebanon Lesotho Liberia Lithuania
-* Madagascar Malawi Malaysia Maldives Mali Marshall Islands
-* Mauritania Mauritius Mayotte Mexico Micronesia Moldova
-* Mongolia Morocco Mozambique Myanmar Namibia Nepal 
-* Nicaragua Niger Nigeria North Korea North Macedonia Northern Mariana Islands
-* Pakistan Panama Papua New Guinea Paraguay Peru Philippines Poland
-* Romania Russian Federation Rwanda
-* Samoa Senegal Serbia and Montenegro Sierra Leone Slovak Republic
-* Solomon Islands Somalia South Africa South Sudan
-* Sri Lanka St. Lucia St. Vincent and the Grenadines
-* Sudan Suriname São Tomé and Principe 
-* Tajikistan Tanzania Thailand Timor-Leste Togo Tonga
-* Tunisia Turkey Turkmenistan Tuvalu
-* USSR (former) Uganda Ukraine Uzbekistan 
-* Vanuatu Vietnam West Bank and Gaza
-* Yugoslavia (former) Zambia Zimbabwe
-
-*****************
-**COUNTRY NAMES**
-*replace countryname="Bahamas" if countryname=="Bahamas, The"
-*replace countryname="Brunei" if countryname=="Brunei Darussalam"
-*replace countryname="Cape Verde" if countryname=="Cabo Verde"
-*replace countryname="China" if countryname=="China, People's Republic of"
-*replace countryname="Democratic Republic of Congo" if countryname=="Congo, Dem. Rep."
-*replace countryname="Central African Republic" if countryname=="CAR"
-*replace countryname="Congo Republic" if countryname=="Congo, Rep."
-*replace countryname="Côte d'Ivoire" if countryname=="Cote d'Ivoire"
-*replace countryname="Egypt" if countryname=="Egypt, Arab Rep."
-*replace countryname="Faroe Islands" if countryname=="Faeroe Islands"
-*replace countryname="Gambia" if countryname=="Gambia, The"
-*replace countryname="Hong Kong" if countryname=="Hong Kong SAR, China" | countryname=="Hong Kong, China"
-*replace countryname="Iran" if countryname=="Iran, Islamic Rep."
-*replace countryname="Laos" if countryname=="Lao PDR"
-*replace countryname="Macao" if countryname=="Macao SAR, China" | countryname=="Macao, China"
-*replace countryname="Netherlands Antilles" if countryname=="Netherlands Antilles (former)"
-*replace countryname="North Korea" if countryname=="Korea, Dem. Rep."
-*replace countryname="South Korea" if countryname=="Korea, Rep."
-*replace countryname="Serbia and Montenegro" if countryname=="Serbia and Montenegro (former)"
-*replace countryname="Syria" if countryname=="Syrian Arab Republic"
-*replace countryname="Taiwan" if countryname=="Taiwan, China"
-*replace countryname="UAE" if countryname==" United Arab Emirates"
-*replace countryname="Venezuela" if countryname=="Venezuela, RB"
-*replace countryname="Virgin Islands" if countryname=="Virgin Islands (U.S.)"
-*replace countryname="Virgin Islands" if countryname=="British Virgin Islands"
-*replace countryname="Yemen" if countryname=="Yemen, Rep."
-
+** Thesis analysis - Data pull and prep/tidy
 ** Contents: START > IMPORT > TIDY > TRANSFORM
 ** VISUALIZE & MODEL in file "analysis_full_0707.ado"
-
 ** Title: Thesis project data prep
 ** 0. Setup
 ** 1. Import data
 ** 2. Tidy & transform data
 ** 3. Merge
+************
+***NOTES****
+**set working directory ("/Users/hanna/OneDrive/Documents/projects"); files use subjective file locations throughout
+** save var & val labels as local macros
+*** IDs - countryname countrycode, year
+*files wide by year (y1234), long by indicator (indicatorname indicatorcode)
+*unless marked "long"
+*** L2 CONTROLS - EDU OUTCOME***
+** urban, gnp, gini, trade open, democracy, corruption/inst quality, transparency
+*** OMITTED CONTROLS - EDU SPENDING***
+** growth, debt, inflation, unemployment, tax revenue, deficit, central gov grants
+** government spending (total, edu), effectiveness of spending
+
+** TO DO: add/update dependent file to clean country names
 
 ************
 ***START****
@@ -147,10 +40,32 @@ global dofiles `"$path\Stata"'
 global figures `"$path\Stata"'
 global temp `"$path\Stata"'
 global out `"$path\Stata"'
-
+*******************************
+****START - BASE POPULATION****
+***************************************************************************CASES*
+** income categories
+import excel "C:\Users\hanna\OneDrive\Documents\thesis\income_classification_hist.xlsx" ///
+, firstrow clear
+drop AJ-IV
+foreach v of varlist C-AI {
+   local x : variable label `v'
+   rename `v' y`x'
+}
+rename Countrycode countrycode
+rename Country countryname
+reshape long y, i(countryname countrycode) j(year)
+	label variable year "Year"
+rename y incomelab
+	label variable incomelab "World Bank Income Category"
+save "$data\income_lab_hist.dta", replace
+** subset by income group
+use "$data\income_lab_hist.dta", clear
+drop if incomelab=="H" | incomelab==".." | incomelab=="UM"
+replace incomelab = "LM" if incomelab=="LM*"
+save "$data\LIC_base.dta", replace
 ***************************
 ****IMPORT - PREDICTORS****
-************************************************************ED OUTCOME CONTROLS*
+************************************************************ED INEQUALITY CONTROLS*
 ** GINI
 import excel ///
 "C:\Users\hanna\OneDrive\Documents\thesis\Gapminder_GINI_ORIG.xlsx", sheet("data-for-countries-etc-by-year") ///
@@ -164,9 +79,16 @@ label variable year "Year"
 rename Gini gini
 label variable gini "GINI coefficient"
 save "$data\GINI.dta"
+drop if year<1987
+use "$data\GINI.dta", clear
+tab countryname if countrycode=="SWZ" | countrycode=="MKD" | countrycode=="LAO" | countrycode=="PRK"
+replace countryname="Laos" if countryname=="Lao"
+replace countryname="Macedonia" if countryname=="Macedonia, FYR"
+replace countryname="Eswatini" if countryname=="Swaziland"
+drop if year<1987
+save "$data\samplegini.dta", replace
 
-** URBAN - % population urban (urbanization)
-** (source: WDI from WB, updated 19-03-21)
+** URBAN - % population urban (urbanization), (source: WDI from WB, updated 19-03-21)
 import excel "C:\Users\hanna\OneDrive\Documents\thesis\POPURBAN.xls", sheet("Data") firstrow
 rename CountryName countryname
 rename CountryCode countrycode
@@ -180,10 +102,54 @@ reshape long y, i(countryname countrycode) j(year)
 rename y urban
 label variable urban "Urban Population %Total"
 label variable year Year
+*tab countryname if countrycode=="SWZ" | countrycode=="MKD" | countrycode=="LAO" | countrycode=="PRK"
+*replace countryname="North Korea" if countrycode=="PRK"
+*duplicates tag countryname year, gen(dup)
+*duplicates list countryname countrycode year
+*duplicates drop countryname countrycode year if countryname=="Eswatini" & dup==1, force
+*duplicates drop countryname countrycode year if countryname=="Macedonia" & dup==1, force
+*duplicates drop countryname countrycode year if countryname=="North Korea" & dup==1, force
+*drop dup
 save "$data\urbanpop.dta", replace
+drop if countryname=="Advanced economies" | countryname=="Advanced G-20" | countryname=="Central Europe and the Baltics" | countryname=="Early-demographic dividend" /// | 
+	| countryname=="East Asia & Pacific" | countryname=="East Asia & Pacific (IDA & IBRD countries)" | countryname=="East Asia & Pacific (excluding high income)" | countryname=="Emerging G-20" ///
+	| countryname=="Emerging Market and Middle-Income Economies" | countryname=="Emerging Market and Middle-Income Asia" ///
+	| countryname=="Emerging Market and Middle-Income Europe" | countryname=="Emerging Market and Middle-Income Latin America" ///
+	| countryname=="Emerging Market and Middle-Income Europe" | countryname=="Emerging Market and Middle-Income Middle East" ///
+	| countryname=="Euro area" | countryname=="European Union" | countryname=="Late-demographic dividend" | countryname=="Europe & Central Asia" | countryname=="Europe & Central Asia (IDA & IBRD countries)" ///
+	| countryname=="Europe & Central Asia (excluding high income)" | countryname=="Latin America & Caribbean" | countryname=="Latin America & the Caribbean (IDA & IBRD countries)" ///
+	| countryname=="Latin America & Caribbean (excluding high income)" | countryname=="Low income" | countryname=="Low & middle income" | countryname=="Low-Income Developing Asia" ///
+	| countryname=="Low-Income Developing Countries" | countryname=="Low-Income Developing Latin America" | countryname=="Low-Income Developing Oil Producers" | countryname=="Low-Income Developing Others" ///
+	| countryname=="Low-Income Developing Sub-Saharan Africa" | countryname=="Lower middle income" | countryname=="Major advanced economies" | countryname=="Middle East & North Africa Middle income" ///
+	| countryname=="Middle East & North Africa (IDA & IBRD countries)" | countryname=="Middle East & North Africa (excluding high income)" ///
+	| countryname=="Not classified" | countryname=="OECD members" | countryname=="Pacific island small states" | countryname=="Small states" | countryname=="Other small states" | countryname=="South Asia" ///
+	| countryname=="South Asia (IDA & IBRD)" | countryname=="Post-demographic dividend" | countryname=="Pre-demographic dividend" ///
+	| countryname=="Sub-Saharan Africa" | countryname=="Sub-Saharan Africa (IDA & IBRD countries)" | countryname=="Sub-Saharan Africa (excluding high income)" ///
+	| countryname=="Upper middle income" | countryname=="World" | countryname=="©IMF, 2021" | countryname=="Arab World" | countryname=="Caribbean small states" | countryname=="Emerging and Middle-Income Asia" ///
+	| countryname=="Emerging and Middle-Income Europe" | countryname=="Emerging and Middle-Income Latin America" | countryname=="Emerging and Middle-Income Middle East" | countryname=="Fragile and conflict affected situations" ///
+	| countryname=="Heavily indebted poor countries (HIPC)" | countryname=="High income" | countryname=="IBRD only" | countryname=="IDA & IBRD only" | countryname=="IDA blend" ///
+	| countryname=="IDA only" | countryname=="IDA total" | countryname=="Least developed countries: UN classification" | countryname=="Major advanced economies (G7)" | countryname=="Middle East & North Africa"
+drop if year<1987
+replace countryname="Curaçao" if countryname=="Curacao"
+save "$data\sampleurban.dta", replace
+
+*** POP DENSITY
+import excel "$path\Data Archive\POPDENS.xlsx", sheet("Data") firstrow
+rename CountryName countryname
+rename CountryCode countrycode
+rename IndicatorName indicator
+foreach v of varlist D-AH {
+   local x : variable label `v'
+   rename `v' y`x'
+}
+drop indicator
+reshape long y, i(countryname countrycode) j(year)
+rename y dens
+label var dens "Population density (people per sq. km. land area)"
+save "$data\POPDENS.dta", replace
 
 *** TRADE
-import excel "C:\Users\hanna\OneDrive\Documents\thesis\TRADEOPEN.xls", sheet("Data") firstrow
+import excel "$data\TRADEOPEN.xls", sheet("Data") firstrow
 rename CountryName countryname
 rename CountryCode countrycode
 foreach v of varlist E-AN {
@@ -197,175 +163,135 @@ rename y open
 label variable open "Trade openness (%GDP)"
 label variable year Year
 save "$data\trade.dta", replace
+replace countryname="North Korea" if countrycode=="PRK"
+drop if countryname=="Holy See"
+drop if year<1987
+replace countryname="Curaçao" if countryname=="Curacao"
+drop if countryname=="IDA & IBRD total" | countryname=="Middle income" | countryname=="North America"
+save "$data\sampletrade.dta", replace
 
 ** DEMOCRACY
-use "C:\Users\hanna\OneDrive\Documents\thesis\DEMOCRACY.dta", clear
-rename eiu_country countryname
+use "C:\Users\hanna\OneDrive\Documents\thesis\V-Dem-CY-Core-v11.1.dta", clear
+rename country_name countryname
+rename country_text_id countrycode
+rename country_id countrynum
 label variable countryname "Country Name"
-drop extended_country_name
-rename eiu demoscore
-label variable demoscore "Democracy Score 0-10"
-rename in_GW_system insystem
-label variable insystem "Independent and sovereign"
-replace countryname="Cape Verde" if countryname=="Cabo Verde"
-replace countryname="Côte d'Ivoire" if countryname=="Côte d’Ivoire"
-drop GWn cown
-save "$data\DEMOCRACYINDEX.dta"
-********************************************************************************
-** MERGE
-use "$data\urbanpop.dta", clear
-tab countryname if countrycode=="SWZ" | countrycode=="MKD" | countrycode=="LAO" | countrycode=="PRK"
-replace countryname="North Korea" if countrycode=="PRK"
-*duplicates tag countryname year, gen(dup)
-*duplicates list countryname countrycode year
-*duplicates drop countryname countrycode year if countryname=="Eswatini" & dup==1, force
-*duplicates drop countryname countrycode year if countryname=="Macedonia" & dup==1, force
-*duplicates drop countryname countrycode year if countryname=="North Korea" & dup==1, force
-*drop dup
-save "$data\urbanpop.dta", replace
-
-use "$data\GINI.dta", clear
-tab countryname if countrycode=="SWZ" | countrycode=="MKD" | countrycode=="LAO" | countrycode=="PRK"
-replace countryname="Laos" if countryname=="Lao"
-replace countryname="Macedonia" if countryname=="Macedonia, FYR"
-replace countryname="Eswatini" if countryname=="Swaziland"
-merge 1:1 countryname year using "$data\urbanpop.dta", gen(mergeurban)
-save "$data\fullset_demo.dta", replace
-
-use "$data\fullset_demo.dta", clear
-merge 1:1 countryname year using "$data\trade.dta", gen(mergetrade)
-duplicates list countryname year
-duplicates list countrycode year
-
-use "$data\trade.dta", clear
-replace countryname="North Korea" if countrycode=="PRK"
-save "$data\trade.dta", replace
-
-use "$data\fullset_demo.dta", clear
-merge 1:1 countryname year using "$data\DEMOCRACYINDEX.dta", gen(mergedemo)
-duplicates list countryname year
-duplicates list countrycode year
-
-use "$data\DEMOCRACYINDEX.dta", clear
-replace countryname="Bosnia and Herzegovina" if countryname=="Bosnia and Hercegovina"
-replace countryname="Saudi Arabia" if countryname=="Saudi"
-replace countryname="Timor-Leste" if countryname=="Timor Leste"
-save "$data\DEMOCRACYINDEX.dta", replace
-
-use "$data\fullset_demo.dta", clear
-merge 1:1 countryname year using "$data\urbanpop.dta", gen(mergeurban)
-merge 1:1 countryname year using "$data\trade.dta", gen(mergetrade)
-merge 1:1 countryname year using "$data\DEMOCRACYINDEX.dta", gen(mergedemo)
-replace countryname="Saudi Arabia" if countryname=="Saudia Arabia"
-replace countrycode="SAU" if countryname=="Saudi Arabia"
-replace countrycode="TWN" if countryname=="Taiwan"
-save "$data\fullset_demo.dta", replace
-
-************************************************************ED SPENDING CONTROLS*
-** DEMOGRAPHIC INDICATORS
-
-** fraction elderly
-import delimited C:\Users\hanna\OneDrive\Documents\thesis\POP65.csv, varnames(1) clear 
-rename ïcountryname countryname
-label variable countryname "Country Name"
-foreach v of varlist v* {
-   local x : variable label `v'
-   rename `v' y`x'
-}
-save "$data\pop65.dta", replace
-drop indicatorname indicatorcode
-reshape long y, i(countryname countrycode) j(year)
-rename y pop65
-label variable pop65 "Population age 65+ (% total)"
-label variable year Year
-replace countryname="North Korea" if countryname=="Korea, Dem. Peopleâs Rep."
-replace countryname="Kyrgyzstan" if countryname=="Kyrgyz Republic"
+replace countryname="Myanmar" if countryname=="Burma/Myanmar"
+replace countryname="DR Congo" if countryname=="Democratic Republic of the Congo"
+replace countryname="Congo" if countryname=="Republic of the Congo"
+replace countryname="Côte d'Ivoire" if countryname=="Côte d’Ivoire" | countryname=="Ivory Coast"
 replace countryname="Macedonia" if countryname=="North Macedonia"
-replace countryname="Russia" if countryname=="Russian Federation"
 replace countryname="São Tomé and Principe" if countryname=="Sao Tome and Principe"
-replace countryname="Slovakia" if countryname=="Slovak Republic"
 replace countryname="UAE" if countryname=="United Arab Emirates"
-replace countryname="Palestine" if countryname=="West Bank and Gaza"
-save "$data\longpop65.dta", replace
-
-** population density
-import delimited C:\Users\hanna\OneDrive\Documents\thesis\POPDENSITY.csv, varnames(1) clear 
-rename ïcountryname countryname
-label variable countryname "Country Name"
-foreach v of varlist v* {
-   local x : variable label `v'
-   rename `v' y`x'
-}
-save "$data\popdensity.dta", replace
-drop indicatorname indicatorcode
-reshape long y, i(countryname countrycode) j(year)
-rename y popdens
-label variable popdens "Population Density (per sqkm land)"
-label variable year Year
-replace countryname="North Korea" if countryname=="Korea, Dem. Peopleâs Rep."
-save "$data\longpopdensity.dta", replace
-********************************************************************************
-** MERGE - ALL DEMOGRAPHIC INDICATORS
-use "$data\fullset_demo.dta", clear
-merge 1:1 countryname year using "$data\longpop65.dta", gen(mergepop65)
-merge 1:1 countryname year using "$data\longpopdensity.dta", gen(mergedensity)
-replace countryname="Micronesia" if countryname=="Micronesia, Fed. Sts."
-save "$data\fullset_demo.dta", replace
-************************************************************ED SPENDING CONTROLS*
-** MACROECONOMIC INDICATORS
-** GDP PPP
-import delimited C:\Users\hanna\OneDrive\Documents\thesis\GDP_PPP.csv, varnames(1) clear
-save "$data\income_debt_encoded.dta" // why did I call this like this?
-
-tab year if countryname=="Czech Republic" | countryname=="Czechoslovakia (former)"
-tab year if countryname=="Russian Federation"
-replace countryname="Laos" if countryname=="Lao PDR"
-replace countryname="Bahamas" if countryname=="Bahamas, The"
-replace countryname="Virgin Islands" if countryname=="British Virgin Islands"
+drop if countryname=="German Democratic Republic"
+tab year if countryname=="Palestine/Gaza"
+tab year if countryname=="Palestine/West Bank"
+replace countryname="Palestine" if countryname=="Palestine/West Bank"
+drop if countryname=="Palestine/Gaza"
+drop if countryname=="Somaliland"
+drop if countryname=="South Yemen"
+replace countryname="Gambia" if countryname=="The Gambia"
+replace countryname="United States" if countryname=="United States of America"
+drop if countryname=="Zanzibar"
+*replace countryname="Cape Verde" if countryname=="Cabo Verde"
+*replace countryname="Bosnia and Herzegovina" if countryname=="Bosnia and Hercegovina"
+*replace countryname="Saudi Arabia" if countryname=="Saudi"
+*replace countryname="Timor-Leste" if countryname=="Timor Leste"
+*replace countryname="Saudi Arabia" if countryname=="Saudia Arabia"
+drop if year<1987 
+save "$data\sampledemocracy.dta", replace
+**********************************************************************************MERGE*
+use "$data\incomelab.dta", clear
 replace countryname="Brunei" if countryname=="Brunei Darussalam"
 replace countryname="Cape Verde" if countryname=="Cabo Verde"
-replace countryname="Democratic Republic of Congo" if countryname=="Congo, Dem. Rep."
-replace countryname="Congo Republic" if countryname=="Congo, Rep."
+replace countryname="Russia" if countryname=="Russian Federation"
+replace countryname="UAE" if countryname=="United Arab Emirates"
+replace countryname="Virgin Islands" if countryname=="Virgin Islands (U.S.)"
+replace countryname="Micronesia, Fed. Sts." if countryname=="Micronesia"
+duplicates list countryname year
+duplicates list countrycode year
+merge 1:1 countryname year using "$data\sampleurban.dta", gen(mergeurban)
+merge 1:1 countryname year using "$data\sampletrade.dta", gen(mergetrade)
+merge 1:1 countryname year using "$data\samplegini.dta", gen(mergegini)
+merge 1:1 countryname year using "$data\sampledemocracy.dta", gen(mergedemo) ///
+	keepus(countrycode codingstart codingend ///
+	v2x_polyarchy v2x_polyarchy_sd v2x_libdem v2x_libdem_sd v2x_partipdem v2x_partipdem_sd ///
+	v2x_delibdem v2x_delibdem_sd v2x_egaldem v2x_egaldem_sd v2x_api v2x_api_sd v2x_mpi v2x_mpi_sd)
+rename v2x_polyarchy polyarchy
+rename v2x_polyarchy_sd polyarchy_sd
+label var polyarchy "Electoral democracy index"
+rename v2x_libdem libdem
+rename v2x_libdem_sd libdem_sd
+label var libdem "Liberal democracy index"
+rename v2x_partipdem partipdem
+rename v2x_partipdem_sd partipdem_sd
+label var partipdem "Participatory democracy index"
+rename v2x_delibdem delibdem
+rename v2x_delibdem_sd delibdem_sd
+label var delibdem "Deliberative democracy index"
+rename v2x_egaldem egaldem
+rename v2x_egaldem_sd egaldem_sd
+label var egaldem "Egalitarian democracy index"
+rename v2x_api api
+rename v2x_api_sd api_sd
+label var api "Additive polyarchy index"
+rename v2x_mpi mpi
+rename v2x_mpi_sd mpi_sd
+label var mpi "Multiplicative polyarchy index"
+tab countryname mergedemo
+merge 1:1 countryname year using "$data\POPDENS.dta", gen(mergedens)
+drop if mergedens==2
+bysort year: egen pc75 = pctile(dens), p(75)
+gen pcdens = 0
+replace pcdens=1 if dens>=pc75
+label var pcdens "Population Density >/= 75th percentile"
+save "$data\fullset_demo.dta", replace
+
+**********************************************************************************ECON*
+** GDP GROWTH (% ANNUAL)
+import excel "$path\Data Archive\GDPGROWTH.xls", sheet("Data") firstrow clear
+rename CountryName countryname
+rename CountryCode countrycode
+foreach v of varlist D-BK {
+   local x : variable label `v'
+   rename `v' y`x'
+}
+save "$data\GDPgrowth.dta", replace
+reshape long y, i(countryname countrycode) j(year)
+rename y gdpgrowth
+label var gdpgrowth "GDP growth (annual %)"
+drop IndicatorName
+save "$data\longGDPgrowth.dta", replace
+drop if year<1987
+drop if countryname=="Africa Eastern and Southern" | countryname=="Africa Western and Central"
+replace countryname="Brunei" if countryname=="Brunei Darussalam"
+replace countryname="Cape Verde" if countryname=="Cabo Verde"
+replace countryname="DR Congo" if countryname=="Congo, Dem. Rep."
+replace countryname="Congo" if countryname=="Congo, Rep."
+replace countryname="Côte d'Ivoire" if countryname=="Côte d’Ivoire" | countryname=="Ivory Coast" | countryname=="Cote d'Ivoire"
 replace countryname="Egypt" if countryname=="Egypt, Arab Rep."
-replace countryname="Faroe Islands" if countryname=="Faeroe Islands"
 replace countryname="Gambia" if countryname=="Gambia, The"
-replace countryname="Hong Kong" if countryname=="Hong Kong SAR, China" | countryname=="Hong Kong, China"
+replace countryname="Hong Kong" if countryname=="Hong Kong SAR, China"
 replace countryname="Iran" if countryname=="Iran, Islamic Rep."
-replace countryname="North Korea" if countryname=="Korea, Dem. Rep."
+replace countryname="North Korea" if countryname=="Korea, Dem. People's Rep."
 replace countryname="South Korea" if countryname=="Korea, Rep."
-replace countryname="Macao" if countryname=="Macao SAR, China" | countryname=="Macao, China"
-replace countryname="Netherlands Antilles" if countryname=="Netherlands Antilles (former)"
-replace countryname="Serbia and Montenegro" if countryname=="Serbia and Montenegro (former)"
+replace countryname="Macedonia" if countryname=="North Macedonia"
+replace countryname="São Tomé and Principe" if countryname=="Sao Tome and Principe"
 replace countryname="Syria" if countryname=="Syrian Arab Republic"
-replace countryname="Taiwan" if countryname=="Taiwan, China"
-replace countryname="UAE" if countryname==" United Arab Emirates"
+replace countryname="UAE" if countryname=="United Arab Emirates"
 replace countryname="Venezuela" if countryname=="Venezuela, RB"
 replace countryname="Virgin Islands" if countryname=="Virgin Islands (U.S.)"
 replace countryname="Yemen" if countryname=="Yemen, Rep."
-
-replace income = 3 if ///
-countryname=="Afghanistan" | countryname=="Bangladesh" | countryname=="Benin" ///
-| countryname=="Burkina Faso" | countryname=="Congo Republic" ///
-| countryname=="Burundi" | countryname=="Central African Republic" ///
-| countryname=="Chad" | countryname=="Comoros" | countryname=="Côte d'Ivoire" ///
-| countryname=="Democratic Republic of Congo" | countryname=="Eritrea" ///
-| countryname=="Ghana" | countryname=="Guinea" | countryname=="Myanmar" ///
-| countryname=="Ethiopia" | countryname=="Haiti" | countryname=="Honduras" ///
-| countryname=="Guinea-Bissau" | countryname=="Mozambique" ///
-| countryname=="Kenya" | countryname=="Kyrgyz Republic" ///
-| countryname=="Lesotho" | countryname=="Liberia" | countryname=="Madagascar" ///
-| countryname=="Mali" | countryname=="Malawi" | countryname=="Mauritania" ///
-| countryname=="Nepal" | countryname=="Niger" | countryname=="Nigeria" ///
-| countryname=="Pakistan" | countryname=="Papua New Guinea" ///
-| countryname=="Rwanda" | countryname=="Senegal" | countryname=="Sierra Leone" ///
-| countryname=="Somalia" | countryname=="South Sudan" | countryname=="Sudan" ///
-| countryname=="Tajikistan" | countryname=="Tanzania" | countryname=="Gambia" ///
-| countryname=="Togo" | countryname=="Uganda" | countryname=="Yemen" ///
-| countryname=="Zambia" | countryname=="Zimbabwe" 
+replace countryname="Bahamas" if countryname=="Bahamas, The"
+replace countryname="Kyrgyzstan" if countryname=="Kyrgyz Republic"
+replace countryname="Laos" if countryname=="Lao PDR"
+replace countryname="Macao" if countryname=="Macao SAR, China"
+replace countryname="Palestine" if countryname=="West Bank and Gaza"
+replace countryname="Slovakia" if countryname=="Slovak Republic"
+replace countryname="Russia" if countryname=="Russian Federation"
 
 ** GDP PPP "GDP, PPP (current international $)" gdpppp
-import delimited C:\Users\hanna\OneDrive\Documents\thesis\GDP_PPP.csv, ///
-varnames(1) clear
+import delimited C:\Users\hanna\OneDrive\Documents\thesis\GDP_PPP.csv, varnames(1) clear
 rename ïcountryname countryname
 *rename indicatorname indicatornameGDPPPP
 *rename indicatorcode indicatorcodeGDPPPP
@@ -381,6 +307,25 @@ rename y gdpppp
 	label variable gdpppp "GDP (current intl$)"
 	label variable year Year
 save "$data\longGDPppp_wb.dta", replace
+drop if countryname=="Advanced economies" | countryname=="Advanced G-20" | countryname=="Central Europe and the Baltics" | countryname=="Early-demographic dividend" /// | 
+	| countryname=="East Asia & Pacific" | countryname=="East Asia & Pacific (IDA & IBRD countries)" | countryname=="East Asia & Pacific (excluding high income)" | countryname=="Emerging G-20" ///
+	| countryname=="Emerging Market and Middle-Income Economies" | countryname=="Emerging Market and Middle-Income Asia" | countryname=="Middle income" | countryname=="North America" ///
+	| countryname=="Emerging Market and Middle-Income Europe" | countryname=="Emerging Market and Middle-Income Latin America" ///
+	| countryname=="Emerging Market and Middle-Income Europe" | countryname=="Emerging Market and Middle-Income Middle East" ///
+	| countryname=="Euro area" | countryname=="European Union" | countryname=="Late-demographic dividend" | countryname=="Europe & Central Asia" | countryname=="Europe & Central Asia (IDA & IBRD countries)" ///
+	| countryname=="Europe & Central Asia (excluding high income)" | countryname=="Latin America & Caribbean" | countryname=="Latin America & the Caribbean (IDA & IBRD countries)" ///
+	| countryname=="Latin America & Caribbean (excluding high income)" | countryname=="Low income" | countryname=="Low & middle income" | countryname=="Low-Income Developing Asia" ///
+	| countryname=="Low-Income Developing Countries" | countryname=="Low-Income Developing Latin America" | countryname=="Low-Income Developing Oil Producers" | countryname=="Low-Income Developing Others" ///
+	| countryname=="Low-Income Developing Sub-Saharan Africa" | countryname=="Lower middle income" | countryname=="Major advanced economies" | countryname=="Middle East & North Africa Middle income" ///
+	| countryname=="Middle East & North Africa (IDA & IBRD countries)" | countryname=="Middle East & North Africa (excluding high income)" ///
+	| countryname=="Not classified" | countryname=="OECD members" | countryname=="Pacific island small states" | countryname=="Small states" | countryname=="Other small states" | countryname=="South Asia" ///
+	| countryname=="South Asia (IDA & IBRD)" | countryname=="Post-demographic dividend" | countryname=="Pre-demographic dividend" | countryname=="IDA & IBRD total" ///
+	| countryname=="Sub-Saharan Africa" | countryname=="Sub-Saharan Africa (IDA & IBRD countries)" | countryname=="Sub-Saharan Africa (excluding high income)" ///
+	| countryname=="Upper middle income" | countryname=="World" | countryname=="©IMF, 2021" | countryname=="Arab World" | countryname=="Caribbean small states" | countryname=="Emerging and Middle-Income Asia" ///
+	| countryname=="Emerging and Middle-Income Europe" | countryname=="Emerging and Middle-Income Latin America" | countryname=="Emerging and Middle-Income Middle East" | countryname=="Fragile and conflict affected situations" ///
+	| countryname=="Heavily indebted poor countries (HIPC)" | countryname=="High income" | countryname=="IBRD only" | countryname=="IDA & IBRD only" | countryname=="IDA blend" ///
+	| countryname=="IDA only" | countryname=="IDA total" | countryname=="Least developed countries: UN classification" | countryname=="Major advanced economies (G7)" | countryname=="Middle East & North Africa"
+save "$data\sampleGDPppp.dta", replace
 
 ** GDP USD "GDP (current US$)" gdpusd
 import delimited C:\Users\hanna\OneDrive\Documents\thesis\GDP_USD.csv, ///
@@ -394,14 +339,34 @@ foreach v of varlist v* {
    rename `v' y`x'
 }
 save "$data\GDPusd_wb.dta", replace
-
-use "C:\Users\hanna\OneDrive\Documents\thesis\Stata\GDPusd_wb.dta", clear
+use "$data\GDPusd_wb.dta", clear
 	drop indicatorname indicatorcode
 reshape long y, i(countryname countrycode) j(year)
 rename y gdpusd
 	label variable gdpusd "GDP (current US$)"
 	label variable year Year
 save "$data\longGDPusd_wb.dta", replace
+drop if countryname=="Advanced economies" | countryname=="Advanced G-20" | countryname=="Central Europe and the Baltics" | countryname=="Early-demographic dividend" /// | 
+	| countryname=="East Asia & Pacific" | countryname=="East Asia & Pacific (IDA & IBRD countries)" | countryname=="East Asia & Pacific (excluding high income)" | countryname=="Emerging G-20" ///
+	| countryname=="Emerging Market and Middle-Income Economies" | countryname=="Emerging Market and Middle-Income Asia" | countryname=="Middle income" | countryname=="North America" ///
+	| countryname=="Emerging Market and Middle-Income Europe" | countryname=="Emerging Market and Middle-Income Latin America" | countryname=="Emerging and Middle-Income Middle East and North Africa and Pakistan" ///
+	| countryname=="Emerging Market and Middle-Income Europe" | countryname=="Emerging Market and Middle-Income Middle East" ///
+	| countryname=="Euro area" | countryname=="European Union" | countryname=="Late-demographic dividend" | countryname=="Europe & Central Asia" | countryname=="Europe & Central Asia (IDA & IBRD countries)" ///
+	| countryname=="Europe & Central Asia (excluding high income)" | countryname=="Latin America & Caribbean" | countryname=="Latin America & the Caribbean (IDA & IBRD countries)" ///
+	| countryname=="Latin America & Caribbean (excluding high income)" | countryname=="Low income" | countryname=="Low & middle income" | countryname=="Low-Income Developing Asia" ///
+	| countryname=="Low-Income Developing Countries" | countryname=="Low-Income Developing Latin America" | countryname=="Low-Income Developing Oil Producers" | countryname=="Low-Income Developing Others" ///
+	| countryname=="Low-Income Developing Sub-Saharan Africa" | countryname=="Lower middle income" | countryname=="Major advanced economies" | countryname=="Middle East & North Africa Middle income" ///
+	| countryname=="Middle East & North Africa (IDA & IBRD countries)" | countryname=="Middle East & North Africa (excluding high income)" ///
+	| countryname=="Not classified" | countryname=="OECD members" | countryname=="Pacific island small states" | countryname=="Small states" | countryname=="Other small states" | countryname=="South Asia" ///
+	| countryname=="South Asia (IDA & IBRD)" | countryname=="Post-demographic dividend" | countryname=="Pre-demographic dividend" | countryname=="IDA & IBRD total" ///
+	| countryname=="Sub-Saharan Africa" | countryname=="Sub-Saharan Africa (IDA & IBRD countries)" | countryname=="Sub-Saharan Africa (excluding high income)" ///
+	| countryname=="Upper middle income" | countryname=="World" | countryname=="©IMF, 2021" | countryname=="Arab World" | countryname=="Caribbean small states" | countryname=="Emerging and Middle-Income Asia" ///
+	| countryname=="Emerging and Middle-Income Europe" | countryname=="Emerging and Middle-Income Latin America" | countryname=="Emerging and Middle-Income Middle East" | countryname=="Fragile and conflict affected situations" ///
+	| countryname=="Heavily indebted poor countries (HIPC)" | countryname=="High income" | countryname=="IBRD only" | countryname=="IDA & IBRD only" | countryname=="IDA blend" ///
+	| countryname=="IDA only" | countryname=="IDA total" | countryname=="Least developed countries: UN classification" | countryname=="Major advanced economies (G7)" | countryname=="Middle East & North Africa"
+drop if year<1987
+replace countryname="North Korea" if countryname=="Korea, Dem. Peopleâs Rep."
+save "$data\sampleGDPusd.dta", replace
 
 ** GDP pc ppp intl "GDP per cap PPP (current intl$)" gdppcppp
 import delimited C:\Users\hanna\OneDrive\Documents\thesis\GDPpcapppp_wb.csv, ///
@@ -422,9 +387,11 @@ rename y gdppcppp
 	label variable gdppcppp "GDP per capita (current intl$)"
 	label variable year Year
 save "$data\longGDPcapppp_wb.dta", replace
+drop if year<1987
+replace countryname="North Korea" if countryname=="Korea, Dem. Peopleâs Rep."
+save "$data\sampleGDPcapppp.dta", replace
 
-** GDP pc USD - "GDP per capita (current US$)" gdppcusd
-* url - https://data.worldbank.org/indicator/NY.GDP.PCAP.CD
+** GDP pc USD - "GDP per capita (current US$)" gdppcusd, source: https://data.worldbank.org/indicator/NY.GDP.PCAP.CD
 import delimited C:\Users\hanna\OneDrive\Documents\thesis\GDPpcap_wb.csv, ///
 varnames(1) clear
 rename ïcountryname countryname
@@ -435,7 +402,7 @@ foreach v of varlist v* {
    rename `v' y`x'
 }
 save "$data\GDPcap_wb.dta", replace
-use "C:\Users\hanna\OneDrive\Documents\thesis\Stata\GDPppp_wb.dta", clear
+use "$data\GDPcap_wb.dta", clear
 drop indicatorname indicatorcode
 reshape long y, i(countryname countrycode) j(year)
 rename y gdppcusd
@@ -443,28 +410,30 @@ rename y gdppcusd
 	label variable countryname "Country Name"
 	label variable year Year
 save "$data\longGDPcap_wb.dta", replace
-********************************************************************************
-** MERGE
-use "$data\longGDPppp_wb.dta", clear
-merge 1:1 countryname year using "$data\longGDPusd_wb.dta", gen(mergeGDP1u)
-merge 1:1 countryname year using "$data\longGDPcapppp_wb.dta", gen(mergeGDP2p)
-merge 1:1 countryname year using "$data\longGDPcap_wb.dta", gen(mergeGDP2u)
+drop if year<1987
 replace countryname="North Korea" if countryname=="Korea, Dem. Peopleâs Rep."
+save "$data\sampleGDPcapusd.dta", replace
+**********************************************************************************MERGE*
+use "$data\sampleGDPppp.dta", clear
+merge 1:1 countryname year using "$data\sampleGDPusd.dta", gen(mergeGDPU)
+merge 1:1 countryname year using "$data\sampleGDPcapppp.dta", gen(mergeGDPP)
+merge 1:1 countryname year using "$data\sampleGDPcapusd.dta", gen(mergeGDPUPC)
 replace countryname="Micronesia" if countryname=="Micronesia, Fed. Sts."
-save "$data\longGDP_merged.dta", replace
+merge 1:1 countryname year using "$data\sampleGDPgrowth.dta", gen(mergegrowth)
+save "$data\sampleGDP_merged.dta", replace
 ************************************************************************SPENDING*
-** SPENDING - "Government Expenditure"
-** source: IMF based on Mauro et al. (2015)
-import delimited using "C:\Users\hanna\OneDrive\Documents\thesis\Data Archive\expenditure.csv", varnames(1) clear 
+** GOVERNMENT SPENDING TOTAL (source: IMF based on Mauro et al. (2015))
+import delimited using "$path\Data Archive\expenditure.csv", varnames(1) clear // Total govt expenditure
 rename entity countryname
 	label variable countryname "Country Name"
 replace countryname="Eswatini" if countryname=="Swaziland"
 save "$data\longspending_historic.dta", replace
 drop if year<1950
+drop if year<1987
 save "$data\longspending.dta", replace
 
 ** EDU SPENDING - "Govt expenditure on education (% total)" edspendperc
-import delimited C:\Users\hanna\OneDrive\Documents\thesis\eduexpenditure.csv, varnames(1) clear 
+import delimited using "$path\Data Archive\eduexpenditure.csv", varnames(1) clear // edu/total spending
 	*rename indicatorname indicatornameGDPPCUSD
 	*rename indicatorcode indicatorcodeGDPPCUSD
 rename ïcountryname countryname
@@ -473,8 +442,8 @@ foreach v of varlist v* {
    local x : variable label `v'
    rename `v' y`x'
 }
-save "$data\spendingedu.dta", replace
-use "C:\Users\hanna\OneDrive\Documents\thesis\Stata\spendingedu.dta", clear
+save "$path\Data Archive\spendingedu.dta", replace
+use "$path\Data Archive\spendingedu.dta", clear
 	drop indicatorname indicatorcode
 reshape long y, i(countryname countrycode) j(year)
 rename y edspendperc
@@ -482,10 +451,12 @@ rename y edspendperc
 	label variable year Year
 replace countryname="Micronesia" if countryname=="Micronesia, Fed. Sts."
 replace countryname="North Korea" if countryname=="Korea, Dem. Peopleâs Rep."
+label variable spending "Total government spending"
+
 save "$data\longspendingedu.dta", replace
 
 ** EDU SPENDING - "Govt expenditure on education (% GDP)" edspendingpercGDP
-import delimited C:\Users\hanna\OneDrive\Documents\thesis\eduexpenditureGDO.csv, varnames(1) clear 
+import delimited C:\Users\hanna\OneDrive\Documents\thesis\eduexpenditureGDP.csv, varnames(1) clear 
 rename ïcountryname countryname
 	label variable countryname "Country Name"
 foreach v of varlist v* {
@@ -498,9 +469,10 @@ reshape long y, i(countryname countrycode) j(year)
 rename y edspendpercGDP
 	label variable edspendpercGDP "Govt expenditure on education (% GDP)"
 	label variable year Year
-replace countryname="Micronesia" if countryname=="Micronesia, Fed. Sts."
 replace countryname="North Korea" if countryname=="Korea, Dem. Peopleâs Rep."
 save "$data\longspendingeduGDP.dta", replace
+drop if year<1987 //and drop non-country entities
+save "$data\samplespendingeduGDP.dta", replace
 
 **DEBT $ - govt debt, "Gross debt position (% of GDP)"
 import excel "C:\Users\hanna\OneDrive\Documents\thesis\debtposition.xls", sheet("G_XWDG_G01_GDP_PT") firstrow clear
@@ -564,52 +536,137 @@ rename y taxesperc
 	label variable year Year
 replace countryname="Micronesia" if countryname=="Micronesia, Fed. Sts."
 save "$data\longtaxes.dta", replace
-
+drop if year<1987
+replace countryname="Eswatini" if countryname=="Swaziland"
+replace countryname="Bahamas" if countryname=="Bahamas, The"
+replace countryname="China" if countryname=="China, People's Republic of"
+replace countryname="Democratic Republic of Congo" if countryname=="Congo, Dem. Rep."
+replace countryname="Congo Republic" if countryname=="Congo, Rep."
+replace countryname="Cape Verde" if countryname=="Cabo Verde"
+replace countryname="Brunei" if countryname=="Brunei Darussalam"
+replace countryname="Gambia" if countryname=="Gambia, The"
+replace countryname="Hong Kong" if countryname=="Hong Kong SAR, China" | ///
+	countryname=="Hong Kong SAR" | countryname=="Hong Kong, China"
+replace countryname="South Korea" if countryname=="Korea, Rep."
+replace countryname="Laos" if countryname=="Lao PDR"
+replace countryname="Micronesia, Fed. Sts." if countryname=="Micronesia, Fed. States of"
+replace countryname="St. Kitts and Nevis" if countryname=="Saint Kitts and Nevis"
+replace countryname="St. Lucia" if countryname=="Saint Lucia"
+replace countryname="St. Vincent and the Grenadines" if countryname=="Saint Vincent and the Grenadines"
+replace countryname="South Sudan" if countryname=="South Sudan, Republic of"
+replace countryname="São Tomé and Principe" if countryname=="São Tomé and Príncipe"
+replace countryname="Taiwan" if countryname=="Taiwan Province of China"
+replace countryname="UAE" if countryname==" United Arab Emirates"
+replace countryname="Congo" if countryname=="Congo, Rep." | countryname=="Congo, Republic of "
+replace countryname="DR Congo" if countryname=="Congo, Dem. Rep." | countryname=="Congo, Dem. Rep. of the"
+replace countryname="South Korea" if countryname=="Korea, Republic of"
+replace countryname="North Korea" if countryname=="Korea, Dem. Peopleâs Rep."
+replace countryname="Laos" if countryname=="Lao P.D.R."
+replace countryname="Macedonia" if countryname=="North Macedonia " | countryname=="North Macedonia"
+save "$data\sampletaxes.dta", replace
 ** OMITTED OR LEFT OUT **
 ** other edu spending determinants: debt payments, deficit, inflation,
 ** social spending effectiveness, central gov grants, unemployment
-********************************************************************************
-** MERGE - ALL MACROECON INDICATORS
-use "$data\longdebtposition.dta", clear
-merge 1:1 countryname year using "$data\longspending.dta", gen(mergespend1)
-merge 1:1 countryname year using "$data\longtaxes.dta", gen(mergetax)
-merge 1:1 countryname year using "$data\longspendingedu.dta", gen(mergespend2)
-merge 1:1 countryname year using "$data\longspendingeduGDP.dta", gen(mergespend3)
-merge 1:1 countryname year using "$data\longGDP_merged.dta", gen(mergeGDPset)
-save "$data\fullset_macroecon_merged.dta", replace
-********************************************************************************
-** MERGE - DEMOGRAPHIC + MACROECONOMIC
-use "$data\fullset_demo.dta", replace
-merge 1:1 countryname year using "$data\fullset_macroecon_merged.dta", gen(mergecovars)
-save "$data\fullset_merged_covars.dta", replace
-***************************************************************************CASES*
-** income categories
-import excel "C:\Users\hanna\OneDrive\Documents\thesis\income_classification_hist.xlsx" ///
-, firstrow clear
-drop AJ-IV
-foreach v of varlist C-AI {
-   local x : variable label `v'
-   rename `v' y`x'
-}
-rename Countrycode countrycode
-rename Country countryname
-reshape long y, i(countryname countrycode) j(year)
-	label variable year "Year"
-rename y incomelab
-	label variable incomelab "World Bank Income Category"
-save "$data\income_lab_hist.dta", replace
-** subset by income group
-use "$data\income_lab_hist.dta", clear
-drop if incomelab=="H" | incomelab==".." | incomelab=="UM"
-replace incomelab = "LM" if incomelab=="LM*"
-save "$data\LIC_base.dta", replace
-***********************************************************************TREATMENT*
-** HIPC start, end dates (year)
-import excel "C:\Users\hanna\OneDrive\Documents\thesis\HIPCitreatment.xlsx" ///
-, sheet("Sheet1") firstrow clear
+
+***************************************************************************DEBT*
+import excel "$path\IDS_SELECTION.xlsx", sheet("Data") firstrow clear
 rename CountryName countryname
-save "C:\Users\hanna\OneDrive\Documents\thesis\Stata\HIPCitreatment.dta"
-*************************************************************************OUTCOME*
+rename CountryCode countrycode
+drop SeriesCode CounterpartAreaCode
+duplicates drop countryname countrycode CounterpartAreaName SeriesName, force
+reshape long YR, i(countryname countrycode CounterpartAreaName SeriesName) j(year)
+drop if countryname=="" & countrycode=="" & CounterpartAreaName==""
+rename CounterpartAreaName counterpart
+replace counterpart="IMF" if counterpart=="International Monetary Fund"
+replace counterpart="WB-IBRD" if counterpart=="World Bank-IBRD                         "
+replace counterpart="WB-IDA" if counterpart=="World Bank-IDA                         "
+replace counterpart="Bilateral Other" if counterpart=="Other Bilateral"
+replace counterpart="Multilateral Other" if counterpart=="Other Multilaterals"
+drop if YR==".."
+rename YR val
+drop if SeriesName==""
+encode SeriesName, gen(series)
+drop SeriesName
+drop if series==5 | series==6 | series==7 | series==11 | series==12 | series==15 ///
+	| series==17 | series==18 | series==19  | series==20 | series==21 | series==25 ///
+	| series==2 | series==9 | series==14 | series==22 | series==24 | series==26 | series==28
+// 1 Debt buyback USD // 3 Debt forgiveness or reduction USD // 8 Debt stock reduction USD
+// 4 External debt service, general // 10 Disbursements external debt, general
+// 23 Multilateral debt service USD // 27 Total change external debt stock USD
+// 13 External debt stocks % GNI // 16 External debt stocks total USD
+save "$data\sampleIDS_DEBT.dta", replace //missing pre-2000 values
+reshape wide val, i(countryname countrycode year counterpart) j(series)
+label var year "Year"
+label var val1 "Debt buyback (current USD)" 
+label var val3 "Debt forgiveness or reduction (current USD)"
+label var val8 "Debt stock reduction (current USD)"
+label var val4 "External debt service, general"
+label var val10 "Disbursements external debt, general"
+label var val23 "Multilateral debt service (current USD)"
+label var val27 "Total change external debt stock (current USD)"
+label var val13 "External debt stocks (%GNI)"
+label var val16 "External debt stocks, total (current USD)"
+drop if counterpart=="Multiple Lenders" | counterpart=="Other Multiple Lenders"
+replace counterpart="WBIDA" if counterpart=="WB-IDA"
+replace counterpart="WBIBRD" if counterpart=="WB-IBRD"
+reshape wide val*, i(countryname countrycode year) j(counterpart) string
+replace countryname="Bahamas" if countryname=="Bahamas, The"
+replace countryname="DR Congo" if countryname=="Democratic Republic of Congo" | "Congo, Dem. Rep."
+replace countryname="Cape Verde" if countryname=="Cabo Verde"
+replace countryname="Gambia" if countryname=="Gambia, The"
+replace countryname="Laos" if countryname=="Lao PDR"
+replace countryname="Macedonia" if countryname=="North Macedonia " | countryname=="North Macedonia"
+replace countryname="Russia" if countryname=="Russian Federation"
+replace countryname="Yemen" if countryname=="Yemen, Rep."
+replace countryname="Venezuela" if countryname=="Venezuela, RB"
+replace countryname="Syria" if countryname=="Syrian Arab Republic"
+replace countryname="Kyrgyzstan" if countryname=="Kyrgyz Republic"
+replace countryname="Iran" if countryname=="Iran, Islamic Rep."
+replace countryname="Côte d'Ivoire" if countryname=="Cote d'Ivoire" 
+replace countryname="Egypt" if countryname=="Egypt, Arab Rep."
+replace countryname="São Tomé and Principe" if countryname=="Sao Tome and Principe"
+drop if countryname=="Advanced economies" | countryname=="Advanced G-20" | countryname=="Central Europe and the Baltics" | countryname=="Early-demographic dividend" /// | 
+	| countryname=="East Asia & Pacific" | countryname=="East Asia & Pacific (IDA & IBRD countries)" | countryname=="East Asia & Pacific (excluding high income)" | countryname=="Emerging G-20" ///
+	| countryname=="Emerging Market and Middle-Income Economies" | countryname=="Emerging Market and Middle-Income Asia" | countryname=="Middle income" | countryname=="North America" ///
+	| countryname=="Emerging Market and Middle-Income Europe" | countryname=="Emerging Market and Middle-Income Latin America" | countryname=="Emerging and Middle-Income Middle East and North Africa and Pakistan" ///
+	| countryname=="Emerging Market and Middle-Income Europe" | countryname=="Emerging Market and Middle-Income Middle East" ///
+	| countryname=="Euro area" | countryname=="European Union" | countryname=="Late-demographic dividend" | countryname=="Europe & Central Asia" | countryname=="Europe & Central Asia (IDA & IBRD countries)" ///
+	| countryname=="Europe & Central Asia (excluding high income)" | countryname=="Latin America & Caribbean" | countryname=="Latin America & the Caribbean (IDA & IBRD countries)" ///
+	| countryname=="Latin America & Caribbean (excluding high income)" | countryname=="Low income" | countryname=="Low & middle income" | countryname=="Low-Income Developing Asia" ///
+	| countryname=="Low-Income Developing Countries" | countryname=="Low-Income Developing Latin America" | countryname=="Low-Income Developing Oil Producers" | countryname=="Low-Income Developing Others" ///
+	| countryname=="Low-Income Developing Sub-Saharan Africa" | countryname=="Lower middle income" | countryname=="Major advanced economies" | countryname=="Middle East & North Africa Middle income" ///
+	| countryname=="Middle East & North Africa (IDA & IBRD countries)" | countryname=="Middle East & North Africa (excluding high income)" ///
+	| countryname=="Not classified" | countryname=="OECD members" | countryname=="Pacific island small states" | countryname=="Small states" | countryname=="Other small states" | countryname=="South Asia" ///
+	| countryname=="South Asia (IDA & IBRD)" | countryname=="Post-demographic dividend" | countryname=="Pre-demographic dividend" | countryname=="IDA & IBRD total" ///
+	| countryname=="Sub-Saharan Africa" | countryname=="Sub-Saharan Africa (IDA & IBRD countries)" | countryname=="Sub-Saharan Africa (excluding high income)" ///
+	| countryname=="Upper middle income" | countryname=="World" | countryname=="©IMF, 2021" | countryname=="Arab World" | countryname=="Caribbean small states" | countryname=="Emerging and Middle-Income Asia" ///
+	| countryname=="Emerging and Middle-Income Europe" | countryname=="Emerging and Middle-Income Latin America" | countryname=="Emerging and Middle-Income Middle East" | countryname=="Fragile and conflict affected situations" ///
+	| countryname=="Heavily indebted poor countries (HIPC)" | countryname=="High income" | countryname=="IBRD only" | countryname=="IDA & IBRD only" | countryname=="IDA blend" ///
+	| countryname=="IDA only" | countryname=="IDA total" | countryname=="Least developed countries: UN classification" | countryname=="Major advanced economies (G7)" | countryname=="Middle East & North Africa" ///
+	| countryname=="Upper middle income" | countryname=="Middle income" | countryname=="Least developed countries: UN classification" ///
+//keep using debt forgiveness or reduction val3IMF val3WBIDA val3WBIBRD
+//keep using debt service val 4World
+//keep using debt stock reduction val8World
+//Figure X Debt reduction and relief for HIPC decision point countries, XXXX
+//Figure X Debt service paid by country group, 1980-2020
+//Debt stock reduction by country group, 1990-2020 [+ ODA disbursements? See Fig. 
+
+save "$data\sampledebtids.dta", replace //missing pre-2000 values
+**********************************************************************************MERGE*
+** MERGE ALL MACROECON INDICATORS
+use "$data\sampleGDP_merged.dta", clear
+merge 1:1 countryname year using "$data\longdebtposition.dta", gen(mergedebt)
+merge 1:1 countryname year using "$data\sampletaxes.dta", gen(mergetax)
+merge 1:1 countryname year using "$data\longspending.dta", gen(mergespend1)
+merge 1:1 countryname year using "$data\longspendingedu.dta", gen(mergespend2)
+merge 1:1 countryname year using "$data\samplespendingeduGDP.dta", gen(mergespend3)
+save "$data\sample_macroecon_merged.dta", replace
+**********************************************************************************MERGE*
+** MERGE DEMOGRAPHIC + MACROECONOMIC
+use "$data\fullset_demo.dta", replace
+merge 1:1 countryname year using "$data\sample_macroecon_merged.dta", gen(mergecovars)
+save "$data\fullset_merged_covars.dta", replace
+**********************************************************************************OUTCOME*
 ** IMHE Human Capital Index
 use "$data\IMHEHC.dta", clear
 reshape wide imhe_hc_mean imhe_hc_lower imhe_hc_upper, i(countrynum countryname year) j(sex_id)
@@ -642,24 +699,57 @@ rename imhe_hc_upper2f hc_upper_f
 	label variable imhe_hc_mean2f "HCI mean, F"
 	label variable imhe_hc_lower2f "HCI lower, F"
 	label variable imhe_hc_upper2f "HCI upper, F"
-
-
-	
-replace countryname="eSwatini" if countryname=="Swaziland"
+replace countryname="Eswatini" if countryname=="Swaziland"
 replace countryname="São Tomé and Principe" if countryname=="Sao Tome and Principe"
-replace countryname="Democratic Republic of Congo" if ///
-	countryname=="Democratic Republic of the Congo" // Slovakia Russia Palestine Macedonia Kyrkgyzstan
+replace countryname="Micronesia, Fed. Sts." if countryname=="Micronesia"
+replace countryname="DR Congo" if countryname=="Democratic Republic of the Congo" // Slovakia Russia Palestine Macedonia Kyrkgyzstan
 ** check for duplicates in countrynum(=/=countrycode) in "$data\IMHEHC_wide.dta"
 duplicates list countrynum year
 duplicates list countryname year
 save "$data\IMHEHC_wide.dta", replace
-*merge 1:1 countryname year using ///
-*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\mergedL2.dta", gen(combiimhe)
-*save "$data\analysis.dta", replace
-* // using which data? this doesn't make sense
-*merge m:1 countryname year using ///
-*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\IMHEHC_wide.dta", gen(combiimhe) 
-*save "$data\analysis.dta", replace
+**********************************************************************************MERGE*
+use "$data\fullset_merged_covars.dta", clear
+merge 1:1 countryname year using "$data\IMHEHC_wide.dta", gen(mergehc)
+save "$data\fullset_merged_full.dta", replace
+drop if year<1990 | year>2019
+duplicates list countryname year
+duplicates list countrycode year
+
+merge 1:1 countryname year using "$data\sampledebtids.dta", gen(mergedebtidc) ///
+	keepusing(val3IMF val3WBIDA val3WBIBRD val4World val8World)
+	//keep using:
+	// debt reduction = val3IMF val3WBIDA val3WBIBRD
+	// debt service = val4World
+	// debt stock reduction = val8World
+label var val3IMF "Debt forgiveness or reduction"
+label var val3WBIDA "Debt forgiveness or reduction"
+label var val3WBIBRD "Debt forgiveness or reduction"
+label var val4World "Debt service, total external"
+label var val8World "Debt stock reduction, total external"
+save "$data\analysis.dta", replace
+
+***************************************************************************CASES*
+** income categories
+import excel "C:\Users\hanna\OneDrive\Documents\thesis\income_classification_hist.xlsx" ///
+, firstrow clear
+drop AJ-IV
+foreach v of varlist C-AI {
+   local x : variable label `v'
+   rename `v' y`x'
+}
+rename Countrycode countrycode
+rename Country countryname
+reshape long y, i(countryname countrycode) j(year)
+	label variable year "Year"
+rename y incomelab
+	label variable incomelab "World Bank Income Category"
+save "$data\income_lab_hist.dta", replace
+** subset by income group
+use "$data\income_lab_hist.dta", clear
+drop if incomelab=="H" | incomelab==".." | incomelab=="UM"
+replace incomelab = "LM" if incomelab=="LM*"
+save "$data\LIC_base.dta", replace
+
 ********************************************************************************
 ** MERGE - quick test
 use "$data\income_lab_hist.dta", clear
@@ -686,18 +776,35 @@ save "$data\fullset_merged_allvars.dta", replace
 * "$data\income_lab_hist.dta" + "$data\IMHEHC_wide.dta" +
 * "$data\fullset_demo.dta" + "$data\fullset_macroecon_merged.dta"
 
+***********************************************************************TREATMENT*
+** HIPC start, end dates (year)
+import excel "C:\Users\hanna\OneDrive\Documents\thesis\HIPCitreatment.xlsx" ///
+, sheet("Sheet1") firstrow clear
+rename CountryName countryname
+save "C:\Users\hanna\OneDrive\Documents\thesis\Stata\HIPCitreatment.dta"
 
-***MERGE*** full pop, for descrips and illustrative graphs
+replace countryname="eSwatini" if countryname=="Swaziland"
+replace countryname="São Tomé and Principe" if countryname=="Sao Tome and Principe"
+replace countryname="Democratic Republic of Congo" if ///
+	countryname=="Democratic Republic of the Congo" // Slovakia Russia Palestine Macedonia Kyrkgyzstan
+** check for duplicates in countrynum(=/=countrycode) in "$data\IMHEHC_wide.dta"
+duplicates list countrynum year
+duplicates list countryname year
+save "$data\IMHEHC_wide.dta", replace
+*merge 1:1 countryname year using ///
+*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\mergedL2.dta", gen(combiimhe)
+*save "$data\analysis.dta", replace
+* // using which data? this doesn't make sense
+*merge m:1 countryname year using ///
+*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\IMHEHC_wide.dta", gen(combiimhe) 
+*save "$data\analysis.dta", replace
+
+***********************************************************************MERGE FIGURES DATASET*
+** all country groups, for descriptives and distribution figures
 use "$data\income_lab_hist.dta", clear
-** remove duplicates
 duplicates list countrycode year
 **drop small economies and communist countries
-drop if countryname=="Netherlands Antilles (former)"
-drop if countryname=="Mayotte"
-drop if countrycode=="CSK"
-drop if countrycode=="SUN"
-drop if countrycode=="YUG"
-
+drop if countryname=="Netherlands Antilles (former)" | countryname=="Mayotte" | countrycode=="CSK" | countrycode=="SUN" | countrycode=="YUG"
 ** fix country labels
 replace countryname="Côte d'Ivoire" if countryname=="Cote d'Ivoire"
 replace countryname="São Tomé and Principe" if countryname=="Sao Tome and Principe"
@@ -735,98 +842,106 @@ replace countryname="Russia" if countryname=="Russian Federation" | countryname=
 replace countryname="Slovakia" if countryname=="Slovak Republic"
 replace countryname="UAE" if countryname=="United Arab Emirates"
 
-duplicates list countrycode countryname year incomelab
-duplicates list countryname year
-save "$data\fullset_base.dta", replace
-save "$data\fullset_base_merged.dta", replace
+** PLOT PREP
+**violin plots
+	*ssc install vioplot, replace
+gen yeardum = year - 1989
+	label variable yeardum "Dummy year, 1990=1" // or should 1990 be year 0?
+** democracy score 0-10 must be put on 100 scale:
+gen demoperc = polyarchy*100
+	label variable demoperc "Electoral democracy score, 0-100" 
+** gdp pc (0-7000) and trade open (0-350) - put on similar scale
+gen openperc = open / 8.6
+	label variable openperc "Trade openness, % GDP, scaled 0-100"
+** gdp usd (very large) and gdp pc (0-7000) - put on similar scale
+gen gdpusdscaled = gdpusd / 1000
+	label var gdpusdscaled "GDP, in 1000s USD"
+gen gdpusdbil = gdpusd / 1000000000
+	label var gdpusdscaled "GDP, in billions USD"
+gen gdppcusdscaled = gdppcusd / 1000
+	label variable gdppcusdscaled "GDP per capita, in 1000s USD"
+gen gdppcusdperc = gdppcusd / 100
+	label variable gdppcusdperc "GDP per capita, in 100s USD"
 
-use "$data\fullset_base_merged.dta", clear
-** merge outcome
-duplicates list countryname year
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\IMHEHC_wide.dta", gen(mergeimhe)
-tab countryname if mergeimhe==2
-duplicates list countrycode year
-duplicates list countryname year
+encode incomelab, gen(ilab)
+label var ilab "Country income group" // this is numeric!
+recode ilab (3=0) (4=3) (1=4) (2=1)
+recode ilab (0=2)
+label define ilabr 1"L" 2"LM" 3"UM" 4"H"
+label values ilab ilabr
+save "$data\figures.dta", replace
+** line plots (means)
+** year/incomelab mean vars:
 
-** merge growth
-*use "$data\fullset_base_merged.dta", clear
-duplicates list name year
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longGDPppp_wb.dta", gen(mergeGDP1)
-tab countryname if mergeGDP1==2
+foreach var in debtstockreduction extdebtservice debtreductionIDA debtreductionIMF debtreductionmultilateral {
+	bysort year incomelab, rc0: egen mean`var' = mean(`var')
+	bysort year HIPC, rc0: egen Hmean`var' = mean(`var') if incomelab=="L" | incomelab=="LM"
+}
 
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longGDPusd_wb.dta", gen(mergeGDP2)
-tab countryname if mergeGDP2==2
+foreach var in imhe_hc_mean3b debtpos spending edspendperc edspendpercGDP ///
+	gini urban open openperc polyarchy demoperc ///
+	gdpusd gdpusdscaled gdpusdbil gdppcusd gdppcusdperc gdppcusdscaled {
+	bysort year incomelab, rc0: egen mean`var' = mean(`var')
+	bysort year HIPC, rc0: egen Hmean`var' = mean(`var')
+}
+//imhe_hc_lower1m imhe_hc_lower2f imhe_hc_lower3b imhe_hc_upper1m imhe_hc_upper2f imhe_hc_upper3b ///
 
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longGDPcapppp_wb.dta", gen(mergeGDP3)
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longGDPcap_wb.dta", gen(mergeGDP4)
-drop if mergeGDP3==2 | mergeGDP4==2
-duplicates list countrycode year
-duplicates list countryname year
+** annual debtpos change per group:
+*bysort year incomelab, rc0: egen meandebtpos = mean(debtpos)
+bysort countryname (year), rc0: gen debtchange = (debtpos[_n]-debtpos[_n-1])
+bysort year incomelab, rc0: egen meandebtchange = mean(debtchange)
+bysort countryname (year): gen groupchangedebtpos=100*(meandebtpos[_n]-meandebtpos[_n-1])/meandebtpos[_n-1]
+bysort countryname (year): gen Hgroupchangedebtpos=100*(Hmeandebtpos[_n]-Hmeandebtpos[_n-1])
+label var groupchangedebtpos "Income group debt position annual change (% change)"
+label var Hgroupchangedebtpos "Treatment group debt position annual change (% GDP)"
+** annual debt change - per country:
+bysort countryname (year): gen debtchangep=100*(debtpos[_n]-debtpos[_n-1])/debtpos[_n-1]
+bysort countryname (year): gen debtchangeg=100*(debtpos[_n]-debtpos[_n-1])
+label var debtchangep "Gross debt position annual change (% change)"
+label var debtchangeg "Gross debt position annual change (% GDP)"
+bysort year incomelab, rc0: egen meandebtchangep = mean(debtchangep)
+bysort year HIPC, rc0: egen Hmeandebtchangep = mean(debtchangep)
+save "$data\figures.dta", replace
 
-** merge outcome covars (gini, urban, trade, democracy index)
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\GINI.dta", gen(mergegini1)
-merge m:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\urbanpop.dta", gen(mergeurban)
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\trade.dta", gen(mergetrade)
-drop if mergegini1==2 | mergeurban==2 | mergetrade==2
+********************************************************************************MERGE ANALYSIS DATASET*
+** start with full sample
+use "$data\figures.dta", clear // countryname countrycode year incomelab
+duplicates list countrycode year // remove duplicates
+drop if year<1990 | year>2020
+drop merge* codingstart codingend libdem libdem_sd api api_sd mpi mpi_sd ///
+	imhe_hc_lower1m imhe_hc_upper1m imhe_hc_lower2f imhe_hc_upper2f
 
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\DEMOCRACYINDEX.dta", gen(mergedemo)
-drop if mergedemo==2
-
-** merge spending
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longdebtposition.dta", gen(mergedebt1)
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longspending.dta", gen(mergespend1)
-drop if mergedebt1==2 | mergespend1==2
-
-** these have countryname year duplicates:
-*merge 1:1 countryname year using ///
-*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longspendingedu.dta", gen(mergespend2)
-*merge 1:1 countryname year using ///
-*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longspendingeduGDP.dta", gen(mergespend3)
-
-** merge edu spending covars (taxes, elderly pop, pop density)
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longtaxes.dta", gen(mergetax1)
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longpop65.dta", gen(mergecontrol1)
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longpopdensity.dta", gen(mergecontrol2)
-
-** save merged data into base file
-save "$data\LIC_base_merged.dta", replace
-
-********************************************************************************
-***MERGE*** - L, LM only, for analysis and modelling
-*use "$data\*mergedL2.dta", clear // previous merged file
-*duplicates list countrycode countryname year debt income
-*duplicates list countrycode countryname year debt income, force
-
-** start with income classification list
-use "$data\LIC_base.dta", clear // countryname countrycode year incomelab
-duplicates list countrycode year
-** remove duplicates
-*replace countryname="Côte d'Ivoire" if countryname=="Cote d'Ivoire"
-*replace countrycode="Democratic Republic of Congo" if countrycode=="Democratic Republic of the Congo"
-*replace countryname="São Tomé and Principe" if countryname=="Sao Tome and Principe"
-
-**drop small economies and communist countries
-*drop if countryname=="Netherlands Antilles (former)"
-*drop if countryname=="Mayotte"
-*drop if countrycode=="CSK"
-*drop if countrycode=="SUN"
-*drop if countrycode=="YUG"
-
-** fix country labels
+// dropping higher-income countries (LM<UM and LM<10x)
+drop if incomelab=="H" & countryname!="Russia" & countryname!="Romania" & countryname!="Equatorial Guinea"
+drop if countryname=="American Samoa" | countryname=="Antigua and Barbuda" | countryname=="Argentina" ///
+	| countryname=="Aruba" | countryname=="Bahrain" | countryname=="Barbados" | countryname=="Botswana" ///
+	| countryname=="Brazil"| countryname=="Chile" | countryname=="Croatia" | countryname=="Czech Republic" ///
+	| countryname=="Estonia" | countryname=="Gabon" | countryname=="Greece" | countryname=="Guam" ///
+	| countryname=="Hungary" | countryname=="Isle of Man" | countryname=="Latvia" ///
+	| countryname=="Lebanon" | countryname=="Libya" | countryname=="Lithuania" ///
+	| countryname=="Macao" | countryname=="Malaysia" | countryname=="Malta" ///
+	| countryname=="Mauritius" | countryname=="Mexico" | countryname=="New Caledonia" ///
+	| countryname=="Oman" | countryname=="Palau" | countryname=="Panama" ///
+	| countryname=="Poland" | countryname=="Portugal" | countryname=="Puerto Rico" ///
+	| countryname=="Saudi Arabia" | countryname=="Seychelles" | countryname=="Slovakia" ///
+	| countryname=="Slovenia" | countryname=="South Africa" | countryname=="South Korea" ///
+	| countryname=="St. Kitts and Nevis" | countryname=="St. Lucia" | countryname=="Cayman Islands" ///
+	| countryname=="Trinidad and Tobago" | countryname=="Uruguay" | countryname=="Venezuela"
+// dropping non-sovereign territories
+drop if countryname=="Anguilla" | countryname=="British Virgin Islands" ///
+	| countryname=="Curaçao" | countryname=="Gibraltar" | countryname=="Northern Mariana Islands" ///
+	|  countryname=="Sint Maarten (Dutch part)" | countryname=="St. Martin (French part)" ///
+	| countryname=="Turks and Caicos Islands"
+// dropping recently created states and states with populations below 1M:
+drop if countryname=="Montenegro" | countryname=="Serbia" | countryname=="South Sudan" /// est. >2000
+	| countryname=="Kosovo" | countryname=="Timor-Leste" ///
+	| countryname=="Nauru" | countryname=="Tuvalu" | countryname=="San Marino" /// pop<1M
+	| countryname=="Liechtenstein" | countryname=="Monaco" | countryname=="Micronesia, Fed. Sts." ///
+	| countryname=="Marshall Islands" | countryname=="Dominica" | countryname=="Samoa" | countryname=="Brunei" ///
+	| countryname=="Tonga" | countryname=="Kiribati" | countryname=="Grenada" | countryname=="Belize" ///
+	| countryname=="Belize" | countryname=="Bhutan" | countryname=="Cabo Verde" | countryname=="Cape Verde" ///
+	| countryname=="Comoros" | countryname=="São Tomé and Principe" | countryname=="St. Vincent and the Grenadines"
+// fix country labels
 replace countryname="Brunei" if countryname=="Brunei Darussalam"
 replace countryname="Cape Verde" if countryname=="Cabo Verde"
 replace countryname="China" if countryname=="China, People's Republic of"
@@ -853,116 +968,10 @@ countryname=="Hong Kong SAR, China" | countryname=="Hong Kong, China"
 replace countryname="Macao" if ///
 countryname=="Macao SAR, China" | countryname=="Macao, China"
 replace countryname="South Korea" if countryname=="Korea, Rep."
-
 duplicates list countrycode countryname year incomelab
-save "$data\LIC_base.dta", replace
-save "$data\LIC_base_merged.dta", replace
+tab countryname incomelab, m
 
-** merge outcome
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\IMHEHC_wide.dta", gen(combiimhe)
-drop if combiimhe==2
-duplicates list countrycode year
-duplicates list countryname year
-
-** merge growth
-*use "$data\LIC_base_merged.dta", clear
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longGDPppp_wb.dta", gen(mergeGDP1)
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longGDPusd_wb.dta", gen(mergeGDP2)
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longGDPcapppp_wb.dta", gen(mergeGDP3)
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longGDPcap_wb.dta", gen(mergeGDP4)
-drop if mergeGDP1==2 | mergeGDP2==2 | mergeGDP3==2 | mergeGDP4==2
-duplicates list countrycode year
-duplicates list countryname year
-
-** merge outcome covars (gini, urban, trade, democracy index)
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\GINI.dta", gen(mergegini1)
-merge m:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\urbanpop.dta", gen(mergeurban)
-merge 1:1 countrycode year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\trade.dta", gen(mergetrade)
-drop if mergegini1==2 | mergeurban==2 | mergetrade==2
-
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\DEMOCRACYINDEX.dta", gen(mergedemo)
-drop if mergedemo==2
-
-** merge spending
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longdebtposition.dta", gen(mergedebt1)
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longspending.dta", gen(mergespend1)
-drop if mergedebt1==2 | mergespend1==2
-
-** these have countryname year duplicates:
-*merge 1:1 countryname year using ///
-*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longspendingedu.dta", gen(mergespend2)
-*merge 1:1 countryname year using ///
-*"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longspendingeduGDP.dta", gen(mergespend3)
-
-** merge edu spending covars (taxes, elderly pop, pop density)
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longtaxes.dta", gen(mergetax1)
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longpop65.dta", gen(mergecontrol1)
-merge 1:1 countryname year using ///
-"C:\Users\hanna\OneDrive\Documents\thesis\Stata\longpopdensity.dta", gen(mergecontrol2)
-
-** save merged data into base file
-save "$data\LIC_base_merged.dta", replace
-
-********************************************************************************
-***SUBSET DATA***
-
-
-** KEEP LICs
-** income==L,LM,LM* / debt==moderate & severe / drop if income>3
-
-*save "C:\Users\hanna\OneDrive\Documents\thesis\Stata\combiLIC.dta", replace
-*use "$data\COMBImerge.dta", replace //I forget what COMBImerge is made from...it's not this .dta
-use "$data\analysis.dta", clear
-drop if year<1980
-drop if year>2020
-save "$data\mergedL2yrs19802020.dta" 
-*or: save "$data\analysis.dta", replace
-
-preserve
-drop merge*
-*keep if income==3 | income==4 | income==5 | debt==8 | debt==4
-drop if income==2 | income==6 // income==1 is missing
-drop if debt==1 | debt==2 | debt==7
-save "$data\analysisLIC.dta", replace
-
-* either of the following 2, to keep only LICs
-*merge m:1 countryname year using "$data\income_debt_encoded.dta", keepusing(debt income)
-
-gen income = 3 if ///
-countryname=="Afghanistan" | countryname=="Bangladesh" | countryname=="Benin" ///
-| countryname=="Burkina Faso" | countryname=="Congo Republic" ///
-| countryname=="Burundi" | countryname=="Central African Republic" ///
-| countryname=="Chad" | countryname=="Comoros" | countryname=="Côte d'Ivoire" ///
-| countryname=="Democratic Republic of Congo" | countryname=="Eritrea" ///
-| countryname=="Ghana" | countryname=="Guinea" | countryname=="Myanmar" ///
-| countryname=="Ethiopia" | countryname=="Haiti" | countryname=="Honduras" ///
-| countryname=="Guinea-Bissau" | countryname=="Mozambique" ///
-| countryname=="Kenya" | countryname=="Kyrgyz Republic" ///
-| countryname=="Lesotho" | countryname=="Liberia" | countryname=="Madagascar" ///
-| countryname=="Mali" | countryname=="Malawi" | countryname=="Mauritania" ///
-| countryname=="Nepal" | countryname=="Niger" | countryname=="Nigeria" ///
-| countryname=="Pakistan" | countryname=="Papua New Guinea" ///
-| countryname=="Rwanda" | countryname=="Senegal" | countryname=="Sierra Leone" ///
-| countryname=="Somalia" | countryname=="South Sudan" | countryname=="Sudan" ///
-| countryname=="Tajikistan" | countryname=="Tanzania" | countryname=="Gambia" ///
-| countryname=="Togo" | countryname=="Uganda" | countryname=="Yemen" ///
-| countryname=="Zambia" | countryname=="Zimbabwe" 
-drop if income !=3
-
-restore
+save "$data\sampleanalysis.dta", replace
 
 ****************************************************************************MISC*
 ** treatment group dummy var:
