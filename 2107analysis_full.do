@@ -1,10 +1,12 @@
-***********
-** Title: Thesis project analysis
-** 1. Visualize data
-** 2. Models & model figures
-** 3. Diagnostics
-** Project Contents: START > IMPORT > TIDY > TRANSFORM > VISUALIZE > MODEL
-** Import data in file "prep", Tidy & transform data - in file "prep"
+************* Title: Thesis project analysis
+** Project contents: START > IMPORT > TIDY > TRANSFORM > VISUALIZE > MODEL
+*************
+** File contents:
+** 1. Descriptives
+** 2. Figures
+** 3. Models
+** 4. Diagnostics // last step
+** Import, tidy, transform in file "prep"
 ************
 ***NOTES****
 ** Path note: set WD ("/Users/hanna/OneDrive/Documents/projects") in setup & use subjective paths after ("$/data)
@@ -15,20 +17,6 @@
 ** ...CONT: urban, gnp, gini, trade open, democracy, corruption/inst quality, transparency
 ** files wide by year (y1234), long by indicator (indicatorname indicatorcode) unless marked "long"
 ** case IDs - countryname countrycode, year
-
-*putexcel A1=matrix(r(C), names) using [model] 	// return list
-*foreach v of var*{ 				// renaming year variables
-*        local l`v' : variable label `v'
-* }
-*foreach v of varlist v* {
-*   local x : variable label `v'
-*   rename `v' y`x'
-*}
-*encode indicatorname, gen(indicator)		// encoding variables
-*drop if indicator==.
-*drop indicatorname
-*replace indicatorname="Missing" if indicator==.
-*replace indicatorcode="Missing" if indicator==.
 ************
 ***SETUP****
 set more off
@@ -48,62 +36,49 @@ global dofiles `"$path\Stata"'
 global figures `"$path"'
 global temp `"$path\Stata"'
 global out `"$path\Stata\out"'
-
-** Visualize data -------------------------------------------------------------- 1
-*************
-***SUMMARY***
-use "$data/LIC_base_merged.dta", clear
-asdoc codebook, save(summary_sample09.doc) //dimensions and types
-asdoc duplicates list countryname year, append //peek
-asdoc duplicates list countrycode year, append //then look at data file
-asdoc tab incomelab, append //catvar levels
-*asdoc sum, detail append //stats sum of all vars
-** add UM and/or H income for comparison in vioplots
-*use "$data/fullset_merged_covars.dta" //use "$data/analysis.dta", clear
-*	gen star = .
-*	replace star = 1 if incomelab=="LM*"
-*	replace star = 2 if incomelab==".." | incomelab==""
-*	label define lbstar 1"LM*" 2".."
-*	label values star lbstar
-*	replace incomelab = "LM" if incomelab=="LM*"
-*	replace incomelab = "" if incomelab==".."
-*save "$data/figures.dta", replace
-*asdoc, row(sum year, sum urban, sum gini, sum polyarchy) dec(2) title(table attempt)
-asdoc sum, detail append save(summary_sample09.doc) title(codebook)
-bysort incomelab: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
-	open spending edspendperc edspendpercGDP demoperc urban, detail append //stats sum of all vars
-bysort HIPC: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
-	open spending edspendperc edspendpercGDP demoperc urban, detail append
-bysort HIPCi: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
-	open spending edspendperc edspendpercGDP demoperc urban, detail append
-	
-bysort incomelab: asdoc codebook, save(summary_sample09.doc) append //dimensions and types
-	asdoc duplicates list countryname year, append //peek
-	asdoc duplicates list countrycode year, append //then look at data file
-	asdoc tab incomelab, append //catvar levels
-** dimensions / types / peek /  stats sum of all vars
-use "$data/LIC_base_merged.dta", clear
+******************
+***DESCRIPTIVES***
+use "$data/figures.dta", clear
 asdoc codebook, save(summary.doc) //dimensions and types
 asdoc duplicates list countryname year, append //peek
 asdoc duplicates list countrycode year, append //then look at data file
 asdoc tab incomelab, append //catvar levels
 asdoc sum, detail append //stats sum of all vars
-
-** add UM and/or H income for comparison in vioplots
-use "$data/analysis.dta", clear
 	gen star = .
 	replace star = 1 if incomelab=="LM*"
-	replace star = 2 if incomelab==".."
+	replace star = 2 if incomelab==".." | incomelab==""
 	label define lbstar 1"LM*" 2".."
 	label values star lbstar
 	replace incomelab = "LM" if incomelab=="LM*"
 	replace incomelab = "" if incomelab==".."
-bysort incomelab: asdoc codebook, save(summary_fullpop.doc) //dimensions and types
+save "$data/figures.dta"
+asdoc, row(sum year, sum urban, sum gini, sum polyarchy) dec(2) title(Main Controls Sum Stats)
+asdoc sum, detail append save(summary.doc) title(codebook)
+
+bysort HIPC: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
+	open spending edspendperc edspendpercGDP demoperc urban, detail replace save(descrip.doc)
+bysort HIPC: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
+	open spending edspendperc edspendpercGDP demoperc urban if year==1990, detail append
+bysort HIPC: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
+	open spending edspendperc edspendpercGDP demoperc urban if year==2016, detail append
+
+bysort incomelab: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
+	open spending edspendperc edspendpercGDP demoperc urban, detail append //stats sum of all vars
+bysort incomelab: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
+	open spending edspendperc edspendpercGDP demoperc urban if year==1990, detail append //stats sum of all vars
+bysort incomelab: asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
+	open spending edspendperc edspendpercGDP demoperc urban if year==2016, detail append //stats sum of all vars
+
+asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
+	open spending edspendperc edspendpercGDP demoperc urban if year==1990, detail append
+asdoc sum imhe_hc_mean3b debtpos gini gdpgrowth gdpusd gdppcusd ///
+	open spending edspendperc edspendpercGDP demoperc urban if year==2016, detail append
+
+asdoc sum, detail append save(summary_sample09.doc) title(codebook)
+bysort incomelab: asdoc codebook, save(summary_sample09.doc) append //dimensions and types
 	asdoc duplicates list countryname year, append //peek
 	asdoc duplicates list countrycode year, append //then look at data file
 	asdoc tab incomelab, append //catvar levels
-bysort incomelab: asdoc sum, detail append //stats sum of all vars
-** add debt category, if such a thing exists
 
 *************
 ***DESCRIP*** Line plots
@@ -116,164 +91,119 @@ bysort incomelab: asdoc sum, detail append //stats sum of all vars
 * Figure 7 Social spending of HIPC participant countries, 1980-2000
 * Figure 8 GINI Index, democracy score, and urbanization score by country group, 1980-2000
 *************
-** 1 Human capital index score by country group, 1980-2000
-************* income groups
-twoway (line meanimhe_hc_mean3b year if incomelab=="L") (line meanimhe_hc_mean3b year if incomelab=="LM") ///
-	(line meanimhe_hc_mean3b year if incomelab=="UM"), legend(label(1 "Low income countries") ///
-	label(2 "Lower-middle income countries") label(3 "Upper-middle income countries")) ///
-	ytitle("Human capital index score") legend(pos(6)) ///
-	xlabel(1990(5)2020, angle(0) grid) 
-graph export "$figures\LICHCI.png", as(png) replace
-************* HIPC vs non-HIPC LICs
-twoway (line Hmeanimhe_hc_mean3b year if HIPC==1) ///
-	(line Hmeanimhe_hc_mean3b year if HIPC==0 & incomelab=="L") ///
-	(line meanimhe_hc_mean3b year if incomelab=="LM", ///
-	legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries, excluding HIPC") ///
-	label(3 "Upper-middle income countries")) ///
-	ytitle("Human capital index score") legend(pos(6)) ///
-	xlabel(1990(5)2020, angle(0) grid)
-graph export "$figures\HIPCHCI.png", as(png) replace
-*************
-** 2 Total public external debt and gross debt position by country group, 1980-2000
-************* income groups
-twoway (line meandebtpos year if incomelab=="L") (line meandebtpos year if incomelab=="LM") ///
-	(line meandebtpos year if incomelab=="UM"), legend(label(1 "Low income countries") ///
-	label(2 "Lower-middle income countries") label(3 "Upper-middle income countries")) ///
-	ytitle("Gross Debt Position") legend(pos(6)) ///
-	xlabel(1990(5)2020, angle(0) grid) 
-graph export "$figures\LICdebtpos.png", as(png) replace
-*************
-** 3 Debt stock reduction by country group, 1990-2000 [+ ODA disbursements? See Fig. 9, UWU paper)
-************* income groups // debt position change
-twoway (line meandebtchange year if incomelab=="L") (line meandebtchange year if incomelab=="LM") ///
-	(line meandebtchange year if incomelab=="UM"), legend(label(1 "Low income countries") ///
-	label(2 "Lower-middle income countries") label(3 "Upper-middle income countries")) ///
-	ytitle("Annual change in gross debt position (% GDP)") legend(pos(6)) ///
-	xlabel(1990(5)2020, angle(0) grid) 
-graph export "$figures\LICdebtchange.png", as(png) replace
-************* HIPC vs non-HIPC LICs // debt position change
-twoway (line Hmeandebtchangep year if HIPC==1) (line Hmeandebtchangep year if HIPC==0 & incomelab=="L"), ///
-	legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries, excluding HIPC") ///
-	label(3 "Upper-middle income countries")) ///
-	ytitle("Annual % change in gross debt position") legend(pos(6)) ///
-	xlabel(1990(5)2020, angle(0) grid)
-graph export "$figures\HIPCdebtchange.png", as(png) replace
-************* income groups // debt stock reduction
-twoway (line meandebtstockreduction year if incomelab=="L") (line meandebtstockreduction year if incomelab=="LM") ///
-	(line meandebtstockreduction year if incomelab=="UM"), legend(label(1 "Low income countries") ///
-	label(2 "Lower-middle income countries") label(3 "Upper-middle income countries")) ///
-	ytitle("Debt stock reduction") legend(pos(6)) ///
-	xlabel(1990(5)2020, angle(0) grid) 
-graph export "$figures\LICdebtreduction.png", as(png) replace
-*************
-** 4 Debt service paid by country group, 1990-2000
-************* income groups // mean external debt service 
-twoway (line meanextdebtservice year if incomelab=="L") (line meanextdebtservice year if incomelab=="LM") ///
-	(line meanextdebtservice year if incomelab=="UM"), legend(label(1 "Low income countries") ///
-	label(2 "Lower-middle income countries") label(3 "Upper-middle income countries")) ///
-	ytitle("Total external debt service (USD)") legend(pos(6)) ///
-	xlabel(1990(5)2020, angle(0) grid) 
-graph export "$figures\LICdebtservice.png", as(png) replace
-*************
-** 5 Debt reduction and relief for HIPC decision point countries, XXXX
-**debtreductionmultilateral = meandebtreductionIDA + meandebtreductionIBRD + meandebtreductionIMF
-************* income groups // meandebtreductionmultilateral
-twoway (line Hmeandebtredux year if HIPC==1) (line Hmeandebtredux year if HIPC==0) ///
-	, legend(label(1 "Highly-indebted poor countries") label(2 "Non-HIPCs")) ///
-	ytitle("Debt reduction, treatment group mean") legend(pos(6)) ///
-	xlabel(2000(5)2015, angle(0) grid) 
-graph export "$figures\HIPCdebtreductionmulti.png", as(png) replace
-twoway (line meandebtredux year if incomelab=="L") (line meandebtredux year if incomelab=="LM") ///
-	(line meandebtredux year if incomelab=="UM"), legend(label(1 "Low income countries") ///
-	label(2 "Lower-middle income countries") label(3 "Upper-middle income countries")) ///
-	ytitle("Debt reduction and forgiveness" "by large multilaterals, group mean") legend(pos(6)) ///
-	xlabel(2000(5)2015, angle(0) grid) 
-graph export "$figures\LICdebtreductionmulti.png", as(png) replace
-************* HIPC vs non-HIPC LICs // Hmeandebtreductionmultilateral
-twoway (line meandebtreductionmultilateral year if incomelab=="L") (line meandebtreductionmultilateral year if incomelab=="LM") ///
-	(line meandebtreductionmultilateral year if incomelab=="UM"), legend(label(1 "Low income countries") ///
-	label(2 "Lower-middle income countries") label(3 "Upper-middle income countries")) ///
-	ytitle("Debt reduction and forgiveness, group mean") legend(pos(6)) ///
-	xlabel(1990(5)2020, angle(0) grid) 
-graph export "$figures\LICdebtreductionmulti.png", as(png) replace
-*************
-** 6 GDP and trade openness by country group, 1990-2000
-************* income groups // mean per capita gdp
-twoway (line meangdppcusdperc year if incomelab=="L") (line meangdppcusdperc year if incomelab=="LM") ///
-	(line meangdppcusdperc year if incomelab=="UM"), ytitle("GDP per capita (USD XXXYEAR)")///	
-	legend(label(1 "Low income countries") label(2 "Lower-middle income countries") ///
-	label(3 "Upper-middle income countries")) legend(pos(6)) xlabel(1985(5)2020, angle(0) grid) 
-graph export "$figures\LICGDP.png", as(png) replace
-************* income groups // mean trade openness
-twoway (line meanopen year if incomelab=="L") (line meanopen year if incomelab=="LM") ///
-	(line meanopen year if incomelab=="UM"), ytitle("Trade openness, %GDP") ///	
-	legend(label(1 "Low income countries") label(2 "Lower-middle income countries") ///
-	label(3 "Upper-middle income countries")) legend(pos(6)) xlabel(1985(5)2020, angle(0) grid) 
-graph export "$figures\LICtradeopen.png", as(png) replace
-************* HIPC vs non-HIPC LICs // mean per capita gdp
- twoway (line Hmeangdppcusdperc year if HIPC==1) (line meangdppcusdperc if incomelab=="L")
-	(line meangdppcusdperc if incomelab=="L" & HIPC==0), label(1 "Highly-indebted poor countries") ///
-	(2 "Low income countries") (3 "Low income countries, excluding HIPC"))
-graph export "$figures\HIPCGDP.png", as(png) replace
-************* HIPC vs non-HIPC LICs // mean trade openness
-twoway (line Hmeanopen year if HIPC==1) (line Hmeanopen year if HIPC==0 & incomelab=="L"), ///
-	ytitle("Trade openness, %GDP")  xlabel(1985(5)2020, angle(0) grid) legend(pos(6)) ///
-	legend(label(1 "Low income countries") label(2 "Lower-middle income countries")) 
-graph export "$figures\HIPCtradeopen.png", as(png) replace
-*************
-** 7 Social spending of HIPC participant countries, 1990-2010
-************* total gov spending:
-twoway (line Hmeanspending year if HIPC==1) (line meanspending year if incomelab=="L") ///
-	(line meanspending year if incomelab=="LM") (line meanspending year if incomelab=="UM"), ytitle("Public spending") ///	
-	legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries") label(3 "Lower-middle income countries") ///
-	label(4 "Upper-middle income countries")) legend(pos(6)) xlabel(1990(5)2010, angle(0) grid) 
-graph export "$figures\LICspending.png", as(png) replace
-twoway (line Hmeanspending year if HIPC==1) (line Hmeanspending year if HIPC==0) , ytitle("Public spending") ///	
-	legend(label(1 "Highly-indebted poor countries") label(2 "non-HIPC")) ///
-	legend(pos(6)) xlabel(1990(5)2010, angle(0) grid) 
-graph export "$figures\HIPCspending.png", as(png) replace
-************* edu spending:
+* Figure 1 Human capital index score by country group, 1980-2000
+twoway (line Hmeanimhe_hc_mean3b year if HIPC==1) (line meanimhe_hc_mean3b year if incomelab=="L") ///
+	(line meanimhe_hc_mean3b year if incomelab=="LM") (line meanimhe_hc_mean3b year if incomelab=="UM") ///
+	, legend(label(1 "HIPC Countries") label(2 "Low income countries") ///
+	label(3 "Lower-middle income countries") label(4 "Upper-middle income countries")) ///
+	ytitle("Human capital index score") legend(pos(6)) xlabel(1990(5)2020, angle(0) grid)
+	graph export "$figures\lineHCI.png", as(png) replace
+* Figure 2a Total public external debt and gross debt position by country group, 1980-2000
+twoway (line Hmeandebtpos year if HIPC==1) (line meandebtpos year if incomelab=="L") ///
+	(line meandebtpos year if incomelab=="LM") (line meandebtpos year if incomelab=="UM") ///
+	, legend(label(1 "HIPC Countries") label(2 "Low income countries") ///
+	label(3 "Lower-middle income countries") label(4 "Upper-middle income countries")) ///
+	ytitle("Gross Debt Position") legend(off) xlabel(1990(5)2020, angle(0) grid) name(alldebtpos)
+	graph export "$figures\linedebtpos.png", as(png) replace
+* Figure 2b GDP
+twoway (line Hmeangdppcusdscaled year if HIPC==1) (line meangdppcusdscaled year if incomelab=="L") ///
+	(line meangdppcusdscaled year if incomelab=="LM") (line meangdppcusdscaled year if incomelab=="UM") ///
+	, legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries") ///
+	label(3 "Lower-middle income countries") label(4 "Upper-middle income countries")) ///
+	ytitle("GDP per capita, 1000s USD") legend(off) xlabel(1985(5)2020, angle(0) grid) name(allGDP)
+	graph export "$figures\LICGDP.png", as(png) replace
+* Figure 2c Social spending of HIPC participant countries, 1980-2000
+twoway (line Hmeanspending year if HIPC==1) (line Hmeanspending year if HIPC==0) ///
+	, legend(label(1 "Highly-indebted poor countries") label(2 "Other countries")) ///
+	ytitle("Public spending") legend(off) xlabel(1985(5)2010, angle(0) grid) name(allspending)
+	graph export "$figures\HIPCspending.png", as(png) replace
+* Figure 2c Edu spending of country groups
 twoway (line HmeanedspendpercGDP year if HIPC==1) (line HmeanedspendpercGDP year if HIPC==0) ///
-	, ytitle("Education spending, % GDP") xlabel(1990(5)2010, angle(0) grid) ///	
-	legend(label(1 "Highly-indebted poor countries") label(2 "non-HIPC")) ///
-	legend(pos(6))
-graph export "$figures\HIPCeduspending.png", as(png) replace
-*************
-** 8 GINI Index, democracy score, and urbanization score by country group, 1980-2000
-************* income groups // gini
-twoway (line Hmeangini year if HIPC==1) (line meangini year if incomelab=="L") ///
-	(line meangini year if incomelab=="LM") (line meangini year if incomelab=="UM"), ytitle("GINI") ///	
-	legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries") label(3 "Lower-middle income countries") ///
-	label(4 "Upper-middle income countries")) legend(pos(6)) xlabel(1985(5)2020, angle(0) grid) 
-graph export "$figures\LICgini.png", as(png) replace
-************* income groups // urban pop
-twoway (line Hmeanurban year if HIPC==1) (line meanurban year if incomelab=="L") ///
-	(line meanurban year if incomelab=="LM") (line meanurban year if incomelab=="UM"), ytitle("Urban (% total population)") ///	
-	legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries") label(3 "Lower-middle income countries") ///
-	label(4 "Upper-middle income countries")) legend(pos(6)) xlabel(1985(5)2020, angle(0) grid) 
-graph export "$figures\LICurban.png", as(png) replace
-************* income groups // demoperc
-twoway (line meandemoperc year if incomelab=="L") (line meandemoperc year if incomelab=="LM") ///
-	(line meandemoperc year if incomelab=="UM"), ytitle("Democracy score (0-100)") ///	
-	legend(label(1 "Low income countries") label(2 "Lower-middle income countries") ///
-	label(3 "Upper-middle income countries")) legend(pos(6)) xlabel(1985(5)2020, angle(0) grid) 
-graph export "$figures\LICurban.png", as(png) replace
+	, legend(label(1 "Highly-indebted poor countries") label(2 "Other countries")) ///
+	legend(off) ytitle("Education spending, % GDP") xlabel(1985(5)2020, angle(0) grid) name(alleduspending)
+	graph export "$figures\linespendinged.png", as(png) replace
+*** FIGURE 2 DEBT + SPENDING
+graph combine alldebtpos allGDP allspending alleduspending
+	graph export "$figures\dist_debt_spending.png", as(png) replace
+* Figure 3 Debt stock reduction by country group, 1980-2000 [+ ODA disbursements? See Fig. 9, UWU paper)
+twoway (line Hgroupchangedebtpos year if HIPC==1) (line groupchangedebtpos year if incomelab=="L") ///
+	(line groupchangedebtpos year if incomelab=="LM") (line groupchangedebtpos year if incomelab=="UM") ///
+	, legend(label(1 "HIPC Countries") label(2 "Low income countries") ///
+	label(3 "Lower-middle income countries") label(4 "Upper-middle income countries")) ///
+	ytitle("Annual change in gross debt position (% GDP)") legend(pos(6)) xlabel(1990(5)2020, angle(0) grid)
+graph export "$figures\linedebtchange.png", as(png) replace
+
+twoway (scatter debtpos year, jitter(3) msize(tiny)) (lfitci debtpos year), legend(pos(5)) name(debttime)
+twoway (scatter gdppcusdscaled year, jitter(3) msize(tiny)) (lfitci gdppcusdscaled year), legend(pos(5)) name(gdptime)
+twoway (scatter spending year, jitter(3) msize(tiny)) (lfitci spending year), legend(pos(5)) name(spendtime)
+twoway (scatter imhe_hc_mean3b year, jitter(3) msize(tiny)) (lfitci imhe_hc_mean3b year), legend(pos(5)) name(hctime)
+graph combine debttime gdptime spendtime hctime
+
+foreach covar in debtpos gdppcusdscaled spending {
+reg imhe_hc_mean3b `covar'
+local b`covar': display %10.3f _b[`covar']
+}
+twoway (scatter imhe_hc_mean3b debtpos, msize(tiny) text(20 300 "_b= -0.007** (0.002)")) ///
+	(lfitci imhe_hc_mean3b debtpos), ytitle("Human Capital Index") xtitle("Total debt") legend(off) name(adebthcv)
+twoway (scatter imhe_hc_mean3b gdppcusdscaled, msize(tiny) text(30 5 "_b= 0.29*** (0.005)")) ///
+	(lfitci imhe_hc_mean3b gdppcusdscaled), ytitle("Human Capital Index") xtitle("GDP USD") legend(off) name(agdphcv)
+twoway (scatter imhe_hc_mean3b spending, msize(tiny) text(20 80 "_b= 0.23*** (0.008)")) ///
+	(lfitci imhe_hc_mean3b spending), ytitle("Human Capital Index") xtitle("Total spending") legend(off) name(aspendhcv)
+graph combine adebthcv agdphcv aspendhcv
+
+* Figure 8a GINI
+twoway (line Hmeangini year if HIPC==1) (line meangini year if incomelab=="L") (line meangini year if incomelab=="LM") (line meangini year if incomelab=="UM") ///
+	, legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries") label(3 "Lower-middle income countries") label(4 "Upper-middle income countries")) ///
+	ytitle("GINI") legend(off) xlabel(1985(5)2020, angle(0) grid) name(LICgini)
+	graph export "$figures\linegini.png", as(png) replace
+* Figure 8b Urban pop
+twoway (line Hmeanurban year if HIPC==1) (line meanurban year if incomelab=="L") (line meanurban year if incomelab=="LM") (line meanurban year if incomelab=="UM") ///
+	, legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries") label(3 "Lower-middle income countries") label(4 "Upper-middle income countries")) ///
+	ytitle("Urban (% total population)") legend(off) xlabel(1985(5)2020, angle(0) grid) name(LICurban)
+	graph export "$figures\lineurban.png", as(png) replace
+* Figure 8c Trade openness by country group, 1990-2000
+twoway (line Hmeanopen year if HIPC==1) (line meanopen year if incomelab=="L") (line meanopen year if incomelab=="LM") (line meanopen year if incomelab=="UM") ///
+	, legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries") ///
+	label(3 "Lower-middle income countries") label(4 "Upper-middle income countries")) ///
+	ytitle("Trade openness, %GDP") legend(off) xlabel(1985(5)2020, angle(0) grid) name(LICopenoff)
+	graph export "$figures\lineopen.png", as(png) replace
+* Figure 8d Democracy score by country group, 1980-2000
+twoway (line Hmeandemoperc year if HIPC==1) (line meandemoperc year if incomelab=="L") ///
+	(line meandemoperc year if incomelab=="LM") (line meandemoperc year if incomelab=="UM") ///
+	, legend(label(1 "Highly-indebted poor countries") label(2 "Low income countries") ///
+	label(3 "Lower-middle income countries") label(4 "Upper-middle income countries")) ///
+	ytitle("Democracy score (0-100)") legend(pos(6)) xlabel(1985(5)2020, angle(0) grid) name(LICdemo)
+	graph export "$figures\linedemoc.png", as(png) replace
+*** FIGURE 8
+graph combine LICgini LICurban LICopenoff LICdemo
+	graph export "$figures\dist_demovars.png", as(png) replace
 
 *************
 ***DESCRIP*** Violin plots
 	** vars: HCI, gov debt, GDP, GINI, urban, trade, demo score, inst quality, edu attainment
 	** grouping: by income category, 1990 and 2015 (or 2010 where 2015 data not available)
-** outcomes - HCI
-asdoc vioplot imhe_hc_mean3b imhe_hc_mean1m imhe_hc_mean2f ///
-	if year==1990 | year==2015, over(year) over(incomelab) save(plots_full.doc)
-** predictors
-asdoc vioplot gini urban demoperc	if year==1990 | year==2015, over(year) over(incomelab) append
-asdoc vioplot gdppcusdperc openperc if year==1990 | year==2015, over(year) over(incomelab) append
-** macroecon indicators
+label var imhe_hc_mean3b "Human Capital Index"
+asdoc vioplot imhe_hc_mean3b gini if year==1990 | year==2015 /// range 0-30
+	, over(ilab) over(year) ytitle(Human capital and GINI index density) save(plots_510.doc)
+asdoc vioplot gdppcusd if year==1990 & ilab!=4 & ilab!=3 | year==2019 & ilab!=4 & ilab!=3 ///
+	, over(year) over(ilab) ytitle(Growth density) append
+asdoc vioplot spending if year==1990 | year==2010 & incomelab!="H" ///
+	, over(year) over(ilab) legend(pos(6)) ytitle(Spending density) append
+asdoc vioplot edspendpercGDP if year==1995 | year==2015 & incomelab!="H" ///
+	, over(year) over(ilab) legend(pos(6)) ytitle(Education spending density) append
+asdoc vioplot open debtpos if year==1990 | year==2019 ///
+	, over(year) over(ilab) legend(pos(6)) ytitle(Debt and growth density) append
+asdoc vioplot urban demoperc if year==1990 | year==2015 ///
+	, over(ilab) over(year) legend(pos(6)) ylabel(-25(25)100, angle(0) grid) append
+asdoc vioplot gini if year==1990 | year==2019 & incomelab!="H" ///
+	, over(ilab) over(year) ytitle(GINI coefficient density) save(plots_510.doc)
+asdoc vioplot gini urban demoperc if year==1990 | year==1995 | year==2000 | year==2005 | year==2010 | year==2015 ///
+	, over(ilab) over(year) legend(label(1 "GINI coef") label(2 "Urban population") label(3 "Democracy score, scaled 0-100")) ///
+	ytitle(Social and political controls, density) save(plots_510.doc)
 asdoc vioplot gdpusdscale debtpos spending if ///
-	(year==1990 | year==2010) & (incomelab=="LM" | incomelab=="L"), over(year) over(incomelab) append
+	(year==1990 | year==2010) & (incomelab=="LM" | incomelab=="L"), over(year) over(ilab) append
 asdoc vioplot gdpusdbil debtpos spending if ///
-	(year==1990 | year==2010) & (incomelab=="UM" | incomelab=="H"), over(year) over(incomelab) append
+	(year==1990 | year==2010) & (incomelab=="UM" | incomelab=="H"), over(year) over(ilab) append
 
 ** Model ----------------------------------------------------------------------- 2
 *****************
